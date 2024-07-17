@@ -1,12 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
-import React from 'react';
 
 export function useAuth() {
   const queryClient = useQueryClient();
 
-  const { data: session, isLoading } = useQuery<Session | null>({
+  const { data: session, isLoading: sessionLoading } = useQuery<Session | null>({
     queryKey: ['session'],
     queryFn: async () => {
       const { data } = await supabase.auth.getSession();
@@ -14,18 +13,27 @@ export function useAuth() {
     },
   });
 
-  // Set up the auth state change listener
-  React.useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        queryClient.setQueryData(['session'], session);
-      }
-    );
+  const { data: userProfile, isLoading: profileLoading } = useQuery({
+    queryKey: ['userProfile', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', session.user.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session?.user?.id,
+  });
 
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [queryClient]);
+  // ... rest of the hook (signOut, etc.)
 
-  return { session, isLoading };
+  return { 
+    session, 
+    userProfile, 
+    isLoading: sessionLoading || profileLoading,
+    // ... other returned values
+  };
 }

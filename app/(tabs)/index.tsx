@@ -23,13 +23,7 @@ export default function App() {
       {/* <Auth />
       {session && session.user && <Text>{session.user.email}</Text>} */}
       <Text>index page</Text>
-      <Button onPress={async () => {
-        // await signOut()
-        await supabase.auth.signOut()
-        router.replace('/');
-      }}>
-        signout
-      </Button>
+
     </View>
   )
 }

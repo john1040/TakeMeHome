@@ -36,7 +36,7 @@ export default function () {
                 token: userInfo.idToken,
               })
               // console.log(error, data)
-              router.replace('/explore')
+              router.replace('/profile')
             } else {
               throw new Error('no ID token present!')
             }
