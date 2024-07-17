@@ -9,26 +9,17 @@ import { ThemedView } from '@/components/ThemedView';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function TabTwoScreen() {
-  const [session, setSession] = useState<Session | null>(null)
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-    })
-
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-  }, [])
+  const { session, isLoading } = useAuth();
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
       headerImage={<Ionicons size={310} name="code-slash" style={styles.headerImage} />}>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
+        <ThemedText type="title">Welcome Back {session?.user.user_metadata.name}</ThemedText>
       </ThemedView>
-      <ThemedText>welcome back! {session?.user.user_metadata.name}</ThemedText>
       <Collapsible title="File-based routing">
         <ThemedText>
           This app has two screens:{' '}

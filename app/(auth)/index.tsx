@@ -6,7 +6,6 @@ import { View, Text, StyleSheet } from 'react-native'
 import { Session } from '@supabase/supabase-js'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@rneui/themed'
-import { router } from 'expo-router'
 
 export default function App() {
   const { session, isLoading } = useAuth();
@@ -19,32 +18,24 @@ export default function App() {
   }
   return (
     <View style={styles.container}>
-      {session && session.user && <Text>{session.user.email}</Text>}
-      {/* <Auth />
-      {session && session.user && <Text>{session.user.email}</Text>} */}
-      <Text>index page</Text>
-      <Button onPress={async () => {
-        // await signOut()
-        await supabase.auth.signOut()
-        router.replace('/');
-      }}>
-        signout
-      </Button>
+      <Auth />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 40,
+    marginBottom: 50,
+    marginTop: 50,
     padding: 12,
+    flex: 1,
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
+    alignItems: 'center'
   },
   verticallySpaced: {
     paddingTop: 4,
     paddingBottom: 4,
     alignSelf: 'stretch',
-  },
-  mt20: {
-    marginTop: 20,
-  },
+  }
 })

@@ -35,7 +35,7 @@ export default function () {
                 provider: 'google',
                 token: userInfo.idToken,
               })
-              console.log(error, data)
+              // console.log(error, data)
               router.replace('/explore')
             } else {
               throw new Error('no ID token present!')
@@ -53,10 +53,6 @@ export default function () {
           }
         }}
       />
-      <Button onPress={async () => {
-        // await signOut()
-        await supabase.auth.signOut()
-      }}>signout</Button>
     </View>
 
   )
