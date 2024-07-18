@@ -2,40 +2,45 @@ import React, { useState } from 'react';
 import { View, TextInput, Button, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function SetupProfile() {
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { session, isLoading } = useAuth();
+  const updateProfileMutation = useMutation({
+    mutationFn: async (newUsername: string) => {
+      // const { data: { user } } = await supabase.auth.getUser();
 
-  const handleSubmit = async () => {
+      if (!session || !session.user) throw new Error('No user found');
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert({ username: newUsername, email: session.user.email })
+        .select();
+      console.log('data', data)
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+      router.replace('/profile');
+    },
+    onError: (error) => {
+      console.error('Error setting username:', error);
+      setError('Failed to set username. Please try again.');
+    },
+  });
+
+  const handleSubmit = () => {
     if (!username.trim()) {
       setError('Username cannot be empty');
       return;
     }
-
-    setIsLoading(true);
     setError('');
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({ username })
-        .eq('id', user.id);
-
-      if (error) throw error;
-      console.log('meow')
-      router.replace('/profile');
-    } catch (error) {
-      console.error('Error setting username:', error);
-      setError('Failed to set username. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    updateProfileMutation.mutate(username);
   };
 
   return (
@@ -45,13 +50,16 @@ export default function SetupProfile() {
         value={username}
         onChangeText={setUsername}
         placeholder="Enter your username"
-        editable={!isLoading}
+        editable={!updateProfileMutation.isPending}
       />
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {updateProfileMutation.isError ? (
+        <Text style={styles.errorText}>{updateProfileMutation.error.message}</Text>
+      ) : null}
       <Button
-        title={isLoading ? "Submitting..." : "Submit"}
+        title={updateProfileMutation.isPending ? "Submitting..." : "Submit"}
         onPress={handleSubmit}
-        disabled={isLoading}
+        disabled={updateProfileMutation.isPending}
       />
     </View>
   );

@@ -30,13 +30,21 @@ export default function () {
           try {
             await GoogleSignin.hasPlayServices()
             const userInfo = await GoogleSignin.signIn()
-            if (userInfo.idToken) {
+            if (userInfo.idToken && userInfo.user && userInfo.user.email) {
               const { data, error } = await supabase.auth.signInWithIdToken({
                 provider: 'google',
                 token: userInfo.idToken,
               })
-              // console.log(error, data)
-              router.replace('/profile')
+              const { profileData, err } = await supabase.from('profiles').select().eq('email', userInfo.user.email)
+
+              if (profileData) {
+                router.replace('/profile')
+              } else {
+                console.log('b')
+                await supabase.from('profiles').upsert({ email: userInfo.user.email }).select()
+
+                router.replace('/setup-profile')
+              }
             } else {
               throw new Error('no ID token present!')
             }

@@ -14,13 +14,13 @@ import { Button } from '@rneui/themed';
 import { router } from 'expo-router';
 
 export default function TabTwoScreen() {
-  const { session, isLoading } = useAuth();
+  const { userProfile, isLoading } = useAuth();
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
       headerImage={<Ionicons size={310} name="code-slash" style={styles.headerImage} />}>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome Back {session?.user.user_metadata.name}</ThemedText>
+        <ThemedText type="title">Welcome Back {userProfile?.username}</ThemedText>
       </ThemedView>
       <Button onPress={async () => {
         // await signOut()
