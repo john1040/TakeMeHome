@@ -19,6 +19,7 @@ export default function () {
   GoogleSignin.configure({
     scopes: ['https://www.googleapis.com/auth/drive.readonly'],
     webClientId: '979781725310-827r3gjqhj49bstcln2r7sj280d359rd.apps.googleusercontent.com',
+    iosClientId: '979781725310-7gn3d2lqf7rhsqk492gcv7otb58midre.apps.googleusercontent.com'
   })
 
   return (
@@ -30,19 +31,28 @@ export default function () {
           try {
             await GoogleSignin.hasPlayServices()
             const userInfo = await GoogleSignin.signIn()
+            // console.log(userInfo)
             if (userInfo.idToken && userInfo.user && userInfo.user.email) {
               const { data, error } = await supabase.auth.signInWithIdToken({
                 provider: 'google',
                 token: userInfo.idToken,
               })
-              const { profileData, err } = await supabase.from('profiles').select().eq('email', userInfo.user.email)
 
-              if (profileData) {
+              console.log(userInfo.user.email)
+let { data: profileData, error: thiserr} = await supabase
+.from('profiles').select('username').eq('email', userInfo.user.email).single()
+                console.log(profileData)
+                console.log(thiserr)
+                const a = JSON.stringify(profileData)
+                console.log(a)
+//               const { profileData, err } = await supabase.from('profiles').select().eq('email', userInfo.user.email)
+              
+              if (profileData?.username !== null) {
                 router.replace('/profile')
               } else {
-                console.log('b')
-                await supabase.from('profiles').upsert({ email: userInfo.user.email }).select()
-
+                console.log('user is new')
+        
+        
                 router.replace('/setup-profile')
               }
             } else {

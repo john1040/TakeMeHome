@@ -14,12 +14,12 @@ export default function SetupProfile() {
   const updateProfileMutation = useMutation({
     mutationFn: async (newUsername: string) => {
       // const { data: { user } } = await supabase.auth.getUser();
-
+      console.log('here', username)
       if (!session || !session.user) throw new Error('No user found');
+      if(username === '') throw new Error('empty username');
       const { data, error } = await supabase
         .from('profiles')
-        .upsert({ username: newUsername, email: session.user.email })
-        .select();
+        .upsert({email: session.user.email, username: username }).select()
       console.log('data', data)
       if (error) throw error;
       return data;
