@@ -12,9 +12,14 @@ export default function App() {
   const { session, isLoading } = useAuth();
   if (isLoading) {
     return (
-      <View>
+      <View style={styles.outer}>
+      <View style={styles.container}>
         <Text>loading...</Text>
       </View>
+      <View style={styles.container}>
+        <Auth />
+      </View>
+    </View>
     )
   }
   return (
