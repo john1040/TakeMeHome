@@ -127,16 +127,8 @@ export default function CreatePost() {
       const imageUrl = `${supabaseUrl}/storage/v1/object/public/post-images/${imageData.path}`;
 
       // Create the post
-    //   console.log('Creating post...');
-    //   console.log(session?.user.id)
-    //   console.log(description)
-    //   console.log(`POINT(${location.coords.longitude} ${location.coords.latitude})`)
-    //   console.log(streetName)
-      if(!session || !session.user || !session.user.id || !description || !location.coords || !streetName){
-        throw new Error('JOJO ERR')
-      }
       const { data, error } = await supabase
-        .from('Post')
+        .from('post')
         .insert({
           user_id: session?.user.id,
           description: description,
@@ -144,10 +136,6 @@ export default function CreatePost() {
           street_name: streetName,
         })
         .select();
-        if(!data){
-            console.log(error)
-            console.log('JOJO')
-        }
       console.log('Post created successfully. ID:', data[0].id);
 
       // Add the image to the Image table
