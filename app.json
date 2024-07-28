@@ -14,9 +14,13 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.john1040.TakeMeHome"
+      "bundleIdentifier": "com.john1040.TakeMeHome",
+      "infoPlist": {
+    "NSLocationWhenInUseUsageDescription": "This app needs access to location to select post locations."
+  }
     },
     "android": {
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"

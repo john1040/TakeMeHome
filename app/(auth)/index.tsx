@@ -16,9 +16,6 @@ export default function App() {
       <View style={styles.container}>
         <Text>loading...</Text>
       </View>
-      <View style={styles.container}>
-        <Auth />
-      </View>
     </View>
     )
   }
