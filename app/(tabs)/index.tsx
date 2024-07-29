@@ -1,44 +1,96 @@
-import 'react-native-url-polyfill/auto'
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-import Auth from '@/components/Auth'
-import { View, Text, StyleSheet } from 'react-native'
-import { Session } from '@supabase/supabase-js'
-import { useAuth } from '@/hooks/useAuth'
-import { Button } from '@rneui/themed'
-import { router } from 'expo-router'
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
+import { supabase } from '@/lib/supabase';
+import PostItem from '@/components/PostItem';
 
-export default function App() {
-  const { session, isLoading } = useAuth();
-  if (isLoading) {
+const POSTS_PER_PAGE = 10;
+
+export default function PostFeed() {
+  const [posts, setPosts] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const onEndReachedCalledDuringMomentum = useRef(true);
+
+  const fetchPosts = useCallback(async () => {
+    if (isLoading || !hasMore) return;
+    setIsLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('post')
+        .select(`
+          id,
+          description,
+          created_at,
+          street_name,
+          user_id,
+          image:image(url)
+        `)
+        .order('created_at', { ascending: false })
+        .range(page * POSTS_PER_PAGE, (page + 1) * POSTS_PER_PAGE - 1);
+
+      if (error) throw error;
+
+      if (data.length < POSTS_PER_PAGE) {
+        setHasMore(false);
+      }
+
+      setPosts(prevPosts => [...prevPosts, ...data]);
+      setPage(prevPage => prevPage + 1);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [page, isLoading, hasMore]);
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const renderItem = ({ item }) => <PostItem post={item} />;
+
+  const renderFooter = () => {
+    if (!isLoading) return null;
     return (
-      <View>
-        <Text>loading...</Text>
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" />
       </View>
-    )
-  }
-  return (
-    <View style={styles.container}>
-      {session && session.user && <Text>{session.user.email}</Text>}
-      {/* <Auth />
-      {session && session.user && <Text>{session.user.email}</Text>} */}
-      <Text>index page</Text>
+    );
+  };
 
-    </View>
-  )
+  const handleLoadMore = () => {
+    if (!onEndReachedCalledDuringMomentum.current) {
+      fetchPosts();
+      onEndReachedCalledDuringMomentum.current = true;
+    }
+  };
+
+  return (
+    <FlatList
+      data={posts}
+      renderItem={renderItem}
+      keyExtractor={item => item.id.toString()}
+      onEndReached={handleLoadMore}
+      onEndReachedThreshold={0.1}
+      onMomentumScrollBegin={() => {
+        onEndReachedCalledDuringMomentum.current = false;
+      }}
+      ListFooterComponent={renderFooter}
+      contentContainerStyle={styles.container}
+    />
+  );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 40,
-    padding: 12,
+    marginTop: 70,
+    paddingHorizontal: 10,
+    paddingBottom: 80
   },
-  verticallySpaced: {
-    paddingTop: 4,
-    paddingBottom: 4,
-    alignSelf: 'stretch',
+  loaderContainer: {
+    marginVertical: 16,
+    alignItems: 'center',
   },
-  mt20: {
-    marginTop: 20,
-  },
-})
+});
