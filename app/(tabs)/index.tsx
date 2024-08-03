@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, FlatList, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import PostItem from '@/components/PostItem';
 
@@ -8,12 +8,34 @@ const POSTS_PER_PAGE = 10;
 export default function PostFeed() {
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [userId, setUserId] = useState(null);
+  const [isUserIdLoading, setIsUserIdLoading] = useState(true);
   const onEndReachedCalledDuringMomentum = useRef(true);
 
-  const fetchPosts = useCallback(async () => {
-    if (isLoading || !hasMore) return;
+  useEffect(() => {
+    fetchUserId();
+  }, []);
+
+  useEffect(() => {
+    if (userId) {
+      fetchPosts();
+    }
+  }, [userId]);
+
+  const fetchUserId = async () => {
+    setIsUserIdLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      setUserId(user.id);
+    }
+    setIsUserIdLoading(false);
+  };
+
+  const fetchPosts = useCallback(async (refresh = false) => {
+    if (isLoading || (!hasMore && !refresh)) return;
     setIsLoading(true);
 
     try {
@@ -28,31 +50,35 @@ export default function PostFeed() {
           image:image(url)
         `)
         .order('created_at', { ascending: false })
-        .range(page * POSTS_PER_PAGE, (page + 1) * POSTS_PER_PAGE - 1);
+        .range(refresh ? 0 : page * POSTS_PER_PAGE, refresh ? POSTS_PER_PAGE - 1 : (page + 1) * POSTS_PER_PAGE - 1);
 
       if (error) throw error;
 
       if (data.length < POSTS_PER_PAGE) {
         setHasMore(false);
+      } else {
+        setHasMore(true);
       }
 
-      setPosts(prevPosts => [...prevPosts, ...data]);
-      setPage(prevPage => prevPage + 1);
+      if (refresh) {
+        setPosts(data);
+        setPage(1);
+      } else {
+        setPosts(prevPosts => [...prevPosts, ...data]);
+        setPage(prevPage => prevPage + 1);
+      }
     } catch (error) {
       console.error('Error fetching posts:', error);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, [page, isLoading, hasMore]);
 
-  useEffect(() => {
-    fetchPosts();
-  }, []);
-
-  const renderItem = ({ item }) => <PostItem post={item} />;
+  const renderItem = ({ item }) => <PostItem post={item} userId={userId} />;
 
   const renderFooter = () => {
-    if (!isLoading) return null;
+    if (!isLoading || isRefreshing) return null;
     return (
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" />
@@ -67,6 +93,11 @@ export default function PostFeed() {
     }
   };
 
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    fetchPosts(true);
+  }, [fetchPosts]);
+
   return (
     <FlatList
       data={posts}
@@ -79,6 +110,12 @@ export default function PostFeed() {
       }}
       ListFooterComponent={renderFooter}
       contentContainerStyle={styles.container}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+        />
+      }
     />
   );
 }
