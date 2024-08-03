@@ -3,7 +3,7 @@ import { View, FlatList, ActivityIndicator, StyleSheet, RefreshControl } from 'r
 import { supabase } from '@/lib/supabase';
 import PostItem from '@/components/PostItem';
 
-const POSTS_PER_PAGE = 10;
+const POSTS_PER_PAGE = 3;
 
 export default function PostFeed() {
   const [posts, setPosts] = useState([]);
@@ -87,6 +87,7 @@ export default function PostFeed() {
   };
 
   const handleLoadMore = () => {
+    console.log('handling load more')
     if (!onEndReachedCalledDuringMomentum.current) {
       fetchPosts();
       onEndReachedCalledDuringMomentum.current = true;

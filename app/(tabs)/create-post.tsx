@@ -179,7 +179,7 @@ export default function CreatePost() {
     <Button title="Create Post" onPress={handleSubmit} />
 
     <Modal visible={showMap} animationType="slide">
-      <View style={styles.container}>
+      <View style={styles.mapContainer}>
         <MapView
           style={styles.map}
           initialRegion={{
@@ -188,7 +188,6 @@ export default function CreatePost() {
             latitudeDelta: 0.0922,
             longitudeDelta: 0.0421,
           }}
-        // provider={MapView.PROVIDER_GOOGLE}
         showsUserLocation={true}
           onPress={handleLocationSelect}
         >
@@ -212,6 +211,7 @@ const styles = StyleSheet.create({
     container: {
       flex: 1,
       padding: 50,
+      justifyContent: 'center'
     },
     input: {
       height: 100,
@@ -225,6 +225,10 @@ const styles = StyleSheet.create({
       height: 200,
       resizeMode: 'contain',
       marginTop: 20,
+    },
+    mapContainer: {
+        flex: 1,
+      justifyContent: 'center'
     },
     map: {
       width: '100%',
