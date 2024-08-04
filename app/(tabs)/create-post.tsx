@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, Image, Alert, StyleSheet, Modal, TouchableOpacity } from 'react-native';
+import { View, TextInput, Button, Image, Alert, StyleSheet, Modal } from 'react-native';
 import * as Location from 'expo-location';
 import { LocationObject } from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
@@ -9,9 +9,9 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import Geocoder from 'react-native-geocoding';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
-import { AntDesign } from '@expo/vector-icons';
 
-const supabaseUrl = 'https://nkkaxelmylemiesxvmoz.supabase.co';
+const supabaseUrl = 'https://nkkaxelmylemiesxvmoz.supabase.co'
+
 
 // Initialize the geocoder
 Geocoder.init("AIzaSyD2438foVr7gc0j35AtlGx2FlcS1OmyrI0"); 
@@ -20,9 +20,8 @@ export default function CreatePost() {
   const { session, userProfile, isLoading } = useAuth();
 
   const [description, setDescription] = useState('');
-  const [images, setImages] = useState<string[]>([]);
+  const [image, setImage] = useState<string | null>(null);
   const [location, setLocation] = useState<LocationObject | null>(null);
-  const [selectedLocation, setSelectedLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [streetName, setStreetName] = useState<string>('');
   const [showMap, setShowMap] = useState(false);
 
@@ -42,6 +41,7 @@ export default function CreatePost() {
 
   const getStreetName = async (latitude: number, longitude: number) => {
     try {
+        console.log(Geocoder.isInit)
       const response = await Geocoder.from(latitude, longitude);
       const address = response.results[0].formatted_address;
       setStreetName(address);
@@ -49,6 +49,16 @@ export default function CreatePost() {
       console.error('Error getting street name:', error);
       setStreetName('Unknown location');
     }
+  };
+
+  const handleLocationSelect = (event: any) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    setLocation({
+      coords: { latitude, longitude },
+      timestamp: Date.now(),
+    } as LocationObject);
+    getStreetName(latitude, longitude);
+    setShowMap(false);
   };
 
   const pickImage = async () => {
@@ -59,190 +69,165 @@ export default function CreatePost() {
       quality: 1,
     });
 
-    if (!result.canceled && images.length < 4) {
-      const manipResult = await ImageManipulator.manipulateAsync(
-        result.assets[0].uri,
-        [{ resize: { width: 800 } }],
-        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-      );
-      setImages(prevImages => [...prevImages, manipResult.uri]);
+    if (!result.canceled) {
+      const compressedImage = await compressImage(result.assets[0].uri);
+      setImage(compressedImage);
     }
   };
 
-  const handleLocationSelect = async (event) => {
-    const { latitude, longitude } = event.nativeEvent.coordinate;
-    setSelectedLocation({ latitude, longitude });
-    getStreetName(latitude, longitude);
-  };
-
-  const handleDeleteImage = (index: number) => {
-    setImages(prevImages => prevImages.filter((_, i) => i !== index));
+  const compressImage = async (uri: string) => {
+    const manipResult = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: 1080 } }], // Resize to width of 1080px, height will adjust automatically
+      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+    );
+    return manipResult.uri;
   };
 
   const handleSubmit = async () => {
-    if (!description || images.length === 0 || !selectedLocation) {
-      Alert.alert('Please fill in all fields');
+    if (!description || !image || !location) {
+      Alert.alert('Please fill in all fields and wait for location data');
       return;
     }
 
     try {
-      const imageUrls = [];
-      for (const image of images) {
-        const imageFileName = `${FileSystem.documentDirectory}${Date.now()}.jpg`;
-        await FileSystem.copyAsync({
-          from: image,
-          to: imageFileName,
+      console.log('Starting image upload process...');
+
+      // Get file info
+      const fileInfo = await FileSystem.getInfoAsync(image);
+      console.log('File info:', fileInfo);
+
+      // Read the file as base64
+      console.log('Reading file as base64...');
+      const base64 = await FileSystem.readAsStringAsync(image, { encoding: FileSystem.EncodingType.Base64 });
+      console.log('File read successfully. Base64 length:', base64.length);
+      
+      // Convert base64 to ArrayBuffer
+      console.log('Converting base64 to ArrayBuffer...');
+      const arrayBuffer = new Uint8Array(atob(base64).split('').map(char => char.charCodeAt(0))).buffer;
+      console.log('ArrayBuffer created. Size:', arrayBuffer.byteLength);
+
+      const filename = image.split('/').pop();
+      const fileExt = filename?.split('.').pop();
+      
+      // Upload the image
+      console.log('Uploading image to Supabase...');
+      const { data: imageData, error: imageError } = await supabase.storage
+        .from('post-images')
+        .upload(`${Date.now()}-${filename}`, arrayBuffer, {
+          contentType: `image/${fileExt}`
         });
 
-        const { data, error } = await supabase.storage
-          .from('posts')
-          .upload(`public/${userProfile.id}/${Date.now()}.jpg`, imageFileName);
+      if (imageError) {
+        console.error('Image upload error:', imageError);
+        throw imageError;
+      }
+      
+      console.log('Image uploaded successfully. Path:', imageData.path);
+      const imageUrl = `${supabaseUrl}/storage/v1/object/public/post-images/${imageData.path}`;
+      console.log(location.coords)
+      // Create the post
+      const { data, error } = await supabase
+        .from('post')
+        .insert({
+          user_id: session?.user.id,
+          description: description,
+          geolocation: `POINT(${location.coords.longitude} ${location.coords.latitude})`,
+          street_name: streetName,
+        })
+        .select();
+      console.log('Post created successfully. ID:', data[0].id);
 
-        if (error) throw error;
+      // Add the image to the Image table
+      console.log('Adding image to Image table...');
+      const { error: imageInsertError } = await supabase
+        .from('image')
+        .insert({
+          post_id: data[0].id,
+          url: imageUrl,
+        });
 
-        const imageUrl = `${supabaseUrl}/storage/v1/object/public/posts/${data.path}`;
-        imageUrls.push(imageUrl);
+      if (imageInsertError) {
+        console.error('Error inserting image:', imageInsertError);
+        throw imageInsertError;
       }
 
-      const { error: insertError } = await supabase
-        .from('post')
-        .insert([
-          {
-            description,
-            user_id: userProfile.id,
-            images: imageUrls,
-            street_name: streetName,
-            latitude: selectedLocation.latitude,
-            longitude: selectedLocation.longitude,
-          },
-        ]);
-
-      if (insertError) throw insertError;
+      console.log('Image added to Image table successfully');
 
       Alert.alert('Post created successfully!');
       setDescription('');
-      setImages([]);
-      setSelectedLocation(null);
-      setStreetName('');
+      setImage(null);
     } catch (error) {
-      console.error('Error creating post:', error);
+      console.error('Error in handleSubmit:', error);
       Alert.alert('Error creating post: ' + (error as Error).message);
     }
   };
 
-  const renderImagePreview = () => {
-    return (
-      <View style={styles.imageGrid}>
-        {Array.from({ length: 4 }).map((_, index) => (
-          <View key={index} style={styles.imageWrapper}>
-            {images[index] ? (
-              <>
-                <Image source={{ uri: images[index] }} style={styles.image} />
-                <TouchableOpacity
-                  style={styles.deleteIcon}
-                  onPress={() => handleDeleteImage(index)}
-                >
-                  <AntDesign name="closecircle" size={24} color="red" />
-                </TouchableOpacity>
-              </>
-            ) : (
-              <View style={styles.placeholder} />
-            )}
-          </View>
-        ))}
-      </View>
-    );
-  };
-
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        value={description}
-        onChangeText={setDescription}
-        placeholder="What's on your mind?"
-        multiline
-      />
-      <Button title="Pick an image" onPress={pickImage} />
-      {renderImagePreview()}
-      <Button title="Select Location" onPress={() => setShowMap(true)} />
-      {streetName && <TextInput style={styles.input} value={streetName} editable={false} />}
-      <Button title="Create Post" onPress={handleSubmit} />
+    <TextInput
+      style={styles.input}
+      value={description}
+      onChangeText={setDescription}
+      placeholder="What's on your mind?"
+      multiline
+    />
+    <Button title="Pick an image" onPress={pickImage} />
+    {image && <Image source={{ uri: image }} style={styles.image} />}
+    <Button title="Select Location" onPress={() => setShowMap(true)} />
+    {streetName && <TextInput style={styles.input} value={streetName} editable={false} />}
+    <Button title="Create Post" onPress={handleSubmit} />
 
-      <Modal visible={showMap} animationType="slide">
-        <View style={styles.mapContainer}>
-          <MapView
-            style={styles.map}
-            initialRegion={{
-              latitude: location?.coords.latitude || 0.0,
-              longitude: location?.coords.longitude || 0.0,
-              latitudeDelta: 0.0922,
-              longitudeDelta: 0.0421,
-            }}
-            showsUserLocation={true}
-            onPress={handleLocationSelect}
-          >
-            {selectedLocation && (
-              <Marker
-                coordinate={{
-                  latitude: selectedLocation.latitude,
-                  longitude: selectedLocation.longitude,
-                }}
-              />
-            )}
-          </MapView>
-          <Button title="Close Map" onPress={() => setShowMap(false)} />
-        </View>
-      </Modal>
-    </View>
+    <Modal visible={showMap} animationType="slide">
+      <View style={styles.container}>
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: location?.coords.latitude || 0.0,
+            longitude: location?.coords.longitude || 0.0,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}
+        // provider={MapView.PROVIDER_GOOGLE}
+        showsUserLocation={true}
+          onPress={handleLocationSelect}
+        >
+          {location && (
+            <Marker
+              coordinate={{
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+              }}
+            />
+          )}
+        </MapView>
+        <Button title="Close Map" onPress={() => setShowMap(false)} />
+      </View>
+    </Modal>
+  </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    marginTop: 50,
-    padding: 50,
-    justifyContent: 'center',
-  },
-  input: {
-    height: 100,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 20,
-    padding: 10,
-  },
-  imageGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginVertical: 20,
-  },
-  imageWrapper: {
-    width: '50%',
-    height: 150,
-    padding: 5,
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  placeholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'gray',
-    borderRadius: 10
-  },
-  deleteIcon: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-  },
-  mapContainer: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  map: {
-    width: '100%',
-    height: '90%',
-  },
-});
+    container: {
+      flex: 1,
+      padding: 50,
+    },
+    input: {
+      height: 100,
+      borderColor: 'gray',
+      borderWidth: 1,
+      marginBottom: 20,
+      padding: 10,
+    },
+    image: {
+      width: 200,
+      height: 200,
+      resizeMode: 'contain',
+      marginTop: 20,
+    },
+    map: {
+      width: '100%',
+      height: '90%',
+    },
+  });
