@@ -1,17 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { Heart } from 'lucide-react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  useAnimatedGestureHandler,
+  runOnJS
+} from 'react-native-reanimated';
+import { PanGestureHandler } from 'react-native-gesture-handler';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function PostItem({ post, userId }) {
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [images, setImages] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  console.log('images', images)
+  const translateX = useSharedValue(0);
 
   useEffect(() => {
     if (userId) {
       fetchLikeStatus();
     }
     fetchLikeCount();
+    fetchImages();
   }, [userId]);
 
   const fetchLikeStatus = async () => {
@@ -44,10 +59,22 @@ export default function PostItem({ post, userId }) {
     }
   };
 
+  const fetchImages = async () => {
+    const { data, error } = await supabase
+      .from('image')
+      .select('url')
+      .eq('post_id', post.id)
+      .order('order', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching images:', error);
+    } else {
+      setImages(data.map(img => img.url));
+    }
+  };
+
   const handleLikeUnlike = async () => {
-    console.log(userId)
     if (!userId) return;
-    console.log("handleLikeUnlike called");
 
     if (isLiked) {
       const { error } = await supabase
@@ -76,23 +103,69 @@ export default function PostItem({ post, userId }) {
     }
   };
 
+  const gestureHandler = useAnimatedGestureHandler({
+    onStart: (_, ctx) => {
+      ctx.startX = translateX.value;
+    },
+    onActive: (event, ctx) => {
+      translateX.value = ctx.startX + event.translationX;
+    },
+    onEnd: (event) => {
+      const threshold = SCREEN_WIDTH / 4;
+      if (Math.abs(event.velocityX) > 500 || Math.abs(event.translationX) > threshold) {
+        if (event.velocityX > 0 && currentIndex > 0) {
+          translateX.value = withSpring((currentIndex - 1) * -SCREEN_WIDTH);
+          runOnJS(setCurrentIndex)(currentIndex - 1);
+        } else if (event.velocityX < 0 && currentIndex < images.length - 1) {
+          translateX.value = withSpring((currentIndex + 1) * -SCREEN_WIDTH);
+          runOnJS(setCurrentIndex)(currentIndex + 1);
+        } else {
+          translateX.value = withSpring(currentIndex * -SCREEN_WIDTH);
+        }
+      } else {
+        translateX.value = withSpring(currentIndex * -SCREEN_WIDTH);
+      }
+    },
+  });
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: translateX.value }],
+    };
+  });
+
   return (
     <View style={styles.container}>
-      <Text style={styles.description}>{post.description}</Text>
-      {post.image && post.image[0] && (
-        <Image source={{ uri: post.image[0].url }} style={styles.image} />
+      <PanGestureHandler onGestureEvent={gestureHandler}>
+        <Animated.View style={[styles.imageContainer, animatedStyle]}>
+          {images.map((image, index) => (
+            <Image
+              key={index}
+              source={{ uri: image }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+          ))}
+        </Animated.View>
+      </PanGestureHandler>
+      {images.length > 1 && (
+        <View style={styles.pagination}>
+          {images.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.paginationDot,
+                index === currentIndex && styles.paginationDotActive,
+              ]}
+            />
+          ))}
+        </View>
       )}
+      <Text style={styles.description}>{post.description}</Text>
       <Text style={styles.location}>{post.street_name}</Text>
       <Text style={styles.date}>{new Date(post.created_at).toLocaleString()}</Text>
       <View style={styles.likeContainer}>
-        <TouchableOpacity
-          onPress={() => {
-            console.log("TouchableOpacity pressed");
-            handleLikeUnlike();
-          }}
-          
-          style={styles.touchable}
-        >
+        <TouchableOpacity onPress={handleLikeUnlike} style={styles.touchable}>
           <Heart
             size={24}
             color={isLiked ? '#e31b23' : '#000'}
@@ -117,14 +190,35 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  description: {
-    fontSize: 16,
-    marginBottom: 8,
+  imageContainer: {
+    width: SCREEN_WIDTH - 32, // Account for container padding
+    height: (SCREEN_WIDTH - 32) * 0.75, // Maintain 4:3 aspect ratio
+    flexDirection: 'row',
+    overflow: 'hidden',
   },
   image: {
-    width: '100%',
-    height: 200,
-    borderRadius: 8,
+    width: SCREEN_WIDTH - 32,
+    height: '100%',
+  },
+  pagination: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ccc',
+    marginHorizontal: 4,
+  },
+  paginationDotActive: {
+    backgroundColor: '#000',
+  },
+  description: {
+    fontSize: 16,
+    marginTop: 8,
     marginBottom: 8,
   },
   location: {
@@ -146,6 +240,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   touchable: {
-    padding: 10, // Ensure TouchableOpacity has a minimum touchable area
+    padding: 10,
   },
 });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, Image, Alert, StyleSheet, Modal } from 'react-native';
+import { View, TextInput, Button, Image, Alert, StyleSheet, Modal, TouchableOpacity, Text } from 'react-native';
 import * as Location from 'expo-location';
 import { LocationObject } from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
@@ -9,18 +9,26 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import Geocoder from 'react-native-geocoding';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const supabaseUrl = 'https://nkkaxelmylemiesxvmoz.supabase.co'
 
-
 // Initialize the geocoder
 Geocoder.init("AIzaSyD2438foVr7gc0j35AtlGx2FlcS1OmyrI0"); 
+
+const MAX_IMAGES = 6;
+
+type ImageItem = {
+  id: string;
+  uri: string;
+};
 
 export default function CreatePost() {
   const { session, userProfile, isLoading } = useAuth();
 
   const [description, setDescription] = useState('');
-  const [image, setImage] = useState<string | null>(null);
+  const [images, setImages] = useState<ImageItem[]>([]);
   const [location, setLocation] = useState<LocationObject | null>(null);
   const [streetName, setStreetName] = useState<string>('');
   const [showMap, setShowMap] = useState(false);
@@ -41,7 +49,6 @@ export default function CreatePost() {
 
   const getStreetName = async (latitude: number, longitude: number) => {
     try {
-        console.log(Geocoder.isInit)
       const response = await Geocoder.from(latitude, longitude);
       const address = response.results[0].formatted_address;
       setStreetName(address);
@@ -62,6 +69,11 @@ export default function CreatePost() {
   };
 
   const pickImage = async () => {
+    if (images.length >= MAX_IMAGES) {
+      Alert.alert('Maximum images reached', `You can only select up to ${MAX_IMAGES} images.`);
+      return;
+    }
+
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -71,21 +83,39 @@ export default function CreatePost() {
 
     if (!result.canceled) {
       const compressedImage = await compressImage(result.assets[0].uri);
-      setImage(compressedImage);
+      setImages(prev => [...prev, { id: Date.now().toString(), uri: compressedImage }]);
     }
   };
 
   const compressImage = async (uri: string) => {
     const manipResult = await ImageManipulator.manipulateAsync(
       uri,
-      [{ resize: { width: 1080 } }], // Resize to width of 1080px, height will adjust automatically
+      [{ resize: { width: 1080 } }],
       { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
     );
     return manipResult.uri;
   };
 
+  const removeImage = (id: string) => {
+    setImages(prev => prev.filter(img => img.id !== id));
+  };
+
+  const renderImageItem = ({ item, drag, isActive }: RenderItemParams<ImageItem>) => {
+    return (
+      <TouchableOpacity
+        style={[styles.imageItem, isActive && styles.activeItem]}
+        onLongPress={drag}
+      >
+        <Image source={{ uri: item.uri }} style={styles.thumbnail} />
+        <TouchableOpacity style={styles.removeButton} onPress={() => removeImage(item.id)}>
+          <Text style={styles.removeButtonText}>X</Text>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    );
+  };
+
   const handleSubmit = async () => {
-    if (!description || !image || !location) {
+    if (!description || images.length === 0 || !location) {
       Alert.alert('Please fill in all fields and wait for location data');
       return;
     }
@@ -93,40 +123,25 @@ export default function CreatePost() {
     try {
       console.log('Starting image upload process...');
 
-      // Get file info
-      const fileInfo = await FileSystem.getInfoAsync(image);
-      console.log('File info:', fileInfo);
+      const uploadedImages = await Promise.all(images.map(async (image, index) => {
+        const fileInfo = await FileSystem.getInfoAsync(image.uri);
+        const base64 = await FileSystem.readAsStringAsync(image.uri, { encoding: FileSystem.EncodingType.Base64 });
+        const arrayBuffer = new Uint8Array(atob(base64).split('').map(char => char.charCodeAt(0))).buffer;
 
-      // Read the file as base64
-      console.log('Reading file as base64...');
-      const base64 = await FileSystem.readAsStringAsync(image, { encoding: FileSystem.EncodingType.Base64 });
-      console.log('File read successfully. Base64 length:', base64.length);
-      
-      // Convert base64 to ArrayBuffer
-      console.log('Converting base64 to ArrayBuffer...');
-      const arrayBuffer = new Uint8Array(atob(base64).split('').map(char => char.charCodeAt(0))).buffer;
-      console.log('ArrayBuffer created. Size:', arrayBuffer.byteLength);
+        const filename = image.uri.split('/').pop();
+        const fileExt = filename?.split('.').pop();
+        
+        const { data: imageData, error: imageError } = await supabase.storage
+          .from('post-images')
+          .upload(`${Date.now()}-${index}-${filename}`, arrayBuffer, {
+            contentType: `image/${fileExt}`
+          });
 
-      const filename = image.split('/').pop();
-      const fileExt = filename?.split('.').pop();
-      
-      // Upload the image
-      console.log('Uploading image to Supabase...');
-      const { data: imageData, error: imageError } = await supabase.storage
-        .from('post-images')
-        .upload(`${Date.now()}-${filename}`, arrayBuffer, {
-          contentType: `image/${fileExt}`
-        });
+        if (imageError) throw imageError;
+        
+        return `${supabaseUrl}/storage/v1/object/public/post-images/${imageData.path}`;
+      }));
 
-      if (imageError) {
-        console.error('Image upload error:', imageError);
-        throw imageError;
-      }
-      
-      console.log('Image uploaded successfully. Path:', imageData.path);
-      const imageUrl = `${supabaseUrl}/storage/v1/object/public/post-images/${imageData.path}`;
-      console.log(location.coords)
-      // Create the post
       const { data, error } = await supabase
         .from('post')
         .insert({
@@ -136,27 +151,24 @@ export default function CreatePost() {
           street_name: streetName,
         })
         .select();
-      console.log('Post created successfully. ID:', data[0].id);
 
-      // Add the image to the Image table
-      console.log('Adding image to Image table...');
-      const { error: imageInsertError } = await supabase
-        .from('image')
-        .insert({
-          post_id: data[0].id,
-          url: imageUrl,
-        });
+      if (error) throw error;
 
-      if (imageInsertError) {
-        console.error('Error inserting image:', imageInsertError);
-        throw imageInsertError;
-      }
+      await Promise.all(uploadedImages.map(async (url, index) => {
+        const { error: imageInsertError } = await supabase
+          .from('image')
+          .insert({
+            post_id: data[0].id,
+            url: url,
+            order: index,
+          });
 
-      console.log('Image added to Image table successfully');
+        if (imageInsertError) throw imageInsertError;
+      }));
 
       Alert.alert('Post created successfully!');
       setDescription('');
-      setImage(null);
+      setImages([]);
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       Alert.alert('Error creating post: ' + (error as Error).message);
@@ -164,70 +176,123 @@ export default function CreatePost() {
   };
 
   return (
-    <View style={styles.container}>
-    <TextInput
-      style={styles.input}
-      value={description}
-      onChangeText={setDescription}
-      placeholder="What's on your mind?"
-      multiline
-    />
-    <Button title="Pick an image" onPress={pickImage} />
-    {image && <Image source={{ uri: image }} style={styles.image} />}
-    <Button title="Select Location" onPress={() => setShowMap(true)} />
-    {streetName && <TextInput style={styles.input} value={streetName} editable={false} />}
-    <Button title="Create Post" onPress={handleSubmit} />
+    <GestureHandlerRootView style={styles.container}>
+      <TextInput
+        style={styles.input}
+        value={description}
+        onChangeText={setDescription}
+        placeholder="What's on your mind?"
+        multiline
+      />
+      <Button title="Pick an image" onPress={pickImage} />
+      <DraggableFlatList
+        data={images}
+        renderItem={renderImageItem}
+        keyExtractor={(item) => item.id}
+        onDragEnd={({ data }) => setImages(data)}
+        numColumns={2}
+        style={styles.imageGrid}
+      />
+      {images.length < MAX_IMAGES && (
+        <TouchableOpacity style={styles.placeholderImage} onPress={pickImage}>
+          <Text style={styles.placeholderText}>+</Text>
+        </TouchableOpacity>
+      )}
+      <Button title="Select Location" onPress={() => setShowMap(true)} />
+      {streetName && <TextInput style={styles.input} value={streetName} editable={false} />}
+      <Button title="Create Post" onPress={handleSubmit} />
 
-    <Modal visible={showMap} animationType="slide">
-      <View style={styles.container}>
-        <MapView
-          style={styles.map}
-          initialRegion={{
-            latitude: location?.coords.latitude || 0.0,
-            longitude: location?.coords.longitude || 0.0,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
-          }}
-        // provider={MapView.PROVIDER_GOOGLE}
-        showsUserLocation={true}
-          onPress={handleLocationSelect}
-        >
-          {location && (
-            <Marker
-              coordinate={{
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude,
-              }}
-            />
-          )}
-        </MapView>
-        <Button title="Close Map" onPress={() => setShowMap(false)} />
-      </View>
-    </Modal>
-  </View>
+      <Modal visible={showMap} animationType="slide">
+        <View style={styles.mapContainer}>
+          <MapView
+            style={styles.map}
+            initialRegion={{
+              latitude: location?.coords.latitude || 0.0,
+              longitude: location?.coords.longitude || 0.0,
+              latitudeDelta: 0.0922,
+              longitudeDelta: 0.0421,
+            }}
+            showsUserLocation={true}
+            onPress={handleLocationSelect}
+          >
+            {location && (
+              <Marker
+                coordinate={{
+                  latitude: location.coords.latitude,
+                  longitude: location.coords.longitude,
+                }}
+              />
+            )}
+          </MapView>
+          <Button title="Close Map" onPress={() => setShowMap(false)} />
+        </View>
+      </Modal>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      padding: 50,
-    },
-    input: {
-      height: 100,
-      borderColor: 'gray',
-      borderWidth: 1,
-      marginBottom: 20,
-      padding: 10,
-    },
-    image: {
-      width: 200,
-      height: 200,
-      resizeMode: 'contain',
-      marginTop: 20,
-    },
-    map: {
-      width: '100%',
-      height: '90%',
-    },
-  });
+  container: {
+    flex: 1,
+    padding: 20,
+  },
+  input: {
+    height: 100,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 20,
+    padding: 10,
+  },
+  imageGrid: {
+    marginBottom: 20,
+  },
+  imageItem: {
+    width: '48%',
+    aspectRatio: 1,
+    margin: '1%',
+    position: 'relative',
+  },
+  activeItem: {
+    opacity: 0.5,
+  },
+  thumbnail: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+  },
+  removeButton: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  placeholderImage: {
+    width: '48%',
+    aspectRatio: 1,
+    margin: '1%',
+    backgroundColor: '#e0e0e0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  placeholderText: {
+    fontSize: 24,
+    color: '#888',
+  },
+  mapContainer: {
+    flex: 1,
+  },
+  map: {
+    width: '100%',
+    height: '90%',
+  },
+});
