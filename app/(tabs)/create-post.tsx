@@ -176,15 +176,10 @@ export default function CreatePost() {
   };
 
   return (
-    <GestureHandlerRootView style={styles.container}>
-      <TextInput
-        style={styles.input}
-        value={description}
-        onChangeText={setDescription}
-        placeholder="What's on your mind?"
-        multiline
-      />
+    <View style={styles.container}>
+      
       <Button title="Pick an image" onPress={pickImage} />
+      
       <DraggableFlatList
         data={images}
         renderItem={renderImageItem}
@@ -200,6 +195,13 @@ export default function CreatePost() {
       )}
       <Button title="Select Location" onPress={() => setShowMap(true)} />
       {streetName && <TextInput style={styles.input} value={streetName} editable={false} />}
+      <TextInput
+        style={styles.input}
+        value={description}
+        onChangeText={setDescription}
+        placeholder="What's on your mind?"
+        multiline
+      />
       <Button title="Create Post" onPress={handleSubmit} />
 
       <Modal visible={showMap} animationType="slide">
@@ -227,7 +229,7 @@ export default function CreatePost() {
           <Button title="Close Map" onPress={() => setShowMap(false)} />
         </View>
       </Modal>
-    </GestureHandlerRootView>
+    </View>
   );
 }
 
