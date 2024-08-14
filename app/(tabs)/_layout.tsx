@@ -51,6 +51,15 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="test"
+        options={{
+          title: 'test',
+          tabBarIcon: ({ color, focused }) => (
+            <Pencil color={color}/>
+          ),
+        }}
+      />
     </Tabs>
   );
 }

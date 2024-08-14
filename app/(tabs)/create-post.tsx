@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, Image, Alert, StyleSheet, Modal, TouchableOpacity, Text } from 'react-native';
+import { View, TextInput, Button, Image, Alert, StyleSheet, Modal, TouchableOpacity, Text, FlatList } from 'react-native';
 import * as Location from 'expo-location';
 import { LocationObject } from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
 import Geocoder from 'react-native-geocoding';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
-import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const supabaseUrl = 'https://nkkaxelmylemiesxvmoz.supabase.co'
 
@@ -32,7 +30,25 @@ export default function CreatePost() {
   const [location, setLocation] = useState<LocationObject | null>(null);
   const [streetName, setStreetName] = useState<string>('');
   const [showMap, setShowMap] = useState(false);
+  const [draggedImage, setDraggedImage] = useState<ImageItem | null>(null);
 
+  
+  const onDragStart = (item: ImageItem) => {
+    setDraggedImage(item);
+  };
+
+  const onDragEnd = (item: ImageItem) => {
+    console.log('inside')
+    if (draggedImage) {
+      const newImages = [...images];
+      const draggedIndex = newImages.findIndex((img) => img.id === draggedImage.id);
+      const targetIndex = newImages.findIndex((img) => img.id === item.id);
+      newImages.splice(draggedIndex, 1);
+      newImages.splice(targetIndex, 0, draggedImage);
+      setImages(newImages);
+      setDraggedImage(null);
+    }
+  };
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -100,11 +116,15 @@ export default function CreatePost() {
     setImages(prev => prev.filter(img => img.id !== id));
   };
 
-  const renderImageItem = ({ item, drag, isActive }: RenderItemParams<ImageItem>) => {
+  const renderImageItem = ({ item }: { item: ImageItem }) => {
     return (
       <TouchableOpacity
-        style={[styles.imageItem, isActive && styles.activeItem]}
-        onLongPress={drag}
+        onPressIn={() => onDragStart(item)}
+        onPressOut={() => onDragEnd(item)}
+        style={[
+          styles.imageItem,
+          draggedImage?.id === item.id && styles.draggedItem
+        ]}
       >
         <Image source={{ uri: item.uri }} style={styles.thumbnail} />
         <TouchableOpacity style={styles.removeButton} onPress={() => removeImage(item.id)}>
@@ -179,20 +199,21 @@ export default function CreatePost() {
     <View style={styles.container}>
       
       <Button title="Pick an image" onPress={pickImage} />
-      
-      <DraggableFlatList
-        data={images}
-        renderItem={renderImageItem}
-        keyExtractor={(item) => item.id}
-        onDragEnd={({ data }) => setImages(data)}
-        numColumns={2}
-        style={styles.imageGrid}
-      />
-      {images.length < MAX_IMAGES && (
-        <TouchableOpacity style={styles.placeholderImage} onPress={pickImage}>
-          <Text style={styles.placeholderText}>+</Text>
-        </TouchableOpacity>
-      )}
+      {/* <View style={styles.imagePreviewContainer}> */}
+        <FlatList
+          data={images}
+          renderItem={renderImageItem}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          scrollEnabled={false}
+          contentContainerStyle={styles.imageGrid}
+        />
+        {images.length < MAX_IMAGES && (
+          <TouchableOpacity style={styles.placeholderImage} onPress={pickImage}>
+            <Text style={styles.placeholderText}>+</Text>
+          </TouchableOpacity>
+        )}
+      {/* </View> */}
       <Button title="Select Location" onPress={() => setShowMap(true)} />
       {streetName && <TextInput style={styles.input} value={streetName} editable={false} />}
       <TextInput
@@ -248,12 +269,6 @@ const styles = StyleSheet.create({
   imageGrid: {
     marginBottom: 20,
   },
-  imageItem: {
-    width: '48%',
-    aspectRatio: 1,
-    margin: '1%',
-    position: 'relative',
-  },
   activeItem: {
     opacity: 0.5,
   },
@@ -278,7 +293,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   placeholderImage: {
-    width: '48%',
+    width: '45%',
     aspectRatio: 1,
     margin: '1%',
     backgroundColor: '#e0e0e0',
@@ -296,5 +311,15 @@ const styles = StyleSheet.create({
   map: {
     width: '100%',
     height: '90%',
+  },
+  imageItem: {
+    width: '45%',
+    aspectRatio: 1,
+    margin: '1.5%',
+    position: 'relative',
+  },
+  draggedItem: {
+    opacity: 0.7,
+    transform: [{ scale: 1.2 }],
   },
 });
