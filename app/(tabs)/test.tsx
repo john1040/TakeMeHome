@@ -17,51 +17,56 @@ const SQUARE_SIZE = 100;
 const GRID_PADDING = 10;
 const GRID_SIZE = 3;
 
-type SquareProps = {
-  index: number;
+type Square = {
+  id: number;
   number: number;
-  position: { x: number; y: number };
-  onDrag: (index: number, x: number, y: number) => void;
-  onDragEnd: (index: number, x: number, y: number) => void;
+  x: number;
+  y: number;
 };
 
-const Square: React.FC<SquareProps> = ({ index, number, position, onDrag, onDragEnd }) => {
+type SquareProps = {
+  square: Square;
+  isActive: boolean;
+  onDrag: (id: number, x: number, y: number) => void;
+  onDragEnd: (id: number, x: number, y: number) => void;
+};
+
+const SquareComponent: React.FC<SquareProps> = ({ square, isActive, onDrag, onDragEnd }) => {
   const offset = useSharedValue({ x: 0, y: 0 });
   const animatedStyles = useAnimatedStyle(() => ({
     transform: [
-      { translateX: offset.value.x + position.x },
-      { translateY: offset.value.y + position.y },
+      { translateX: isActive ? offset.value.x : withSpring(square.x) },
+      { translateY: isActive ? offset.value.y : withSpring(square.y) },
     ],
-    zIndex: offset.value.x !== 0 || offset.value.y !== 0 ? 1 : 0,
+    zIndex: isActive ? 1 : 0,
   }));
 
   const gesture = Gesture.Pan()
     .onStart(() => {
-      offset.value = { x: 0, y: 0 };
+      offset.value = { x: square.x, y: square.y };
     })
     .onUpdate((event) => {
       offset.value = {
-        x: event.translationX,
-        y: event.translationY,
+        x: square.x + event.translationX,
+        y: square.y + event.translationY,
       };
-      runOnJS(onDrag)(index, position.x + offset.value.x, position.y + offset.value.y);
+      runOnJS(onDrag)(square.id, offset.value.x, offset.value.y);
     })
     .onEnd(() => {
-      runOnJS(onDragEnd)(index, position.x + offset.value.x, position.y + offset.value.y);
-      offset.value = { x: 0, y: 0 };
+      runOnJS(onDragEnd)(square.id, offset.value.x, offset.value.y);
     });
 
   return (
     <GestureDetector gesture={gesture}>
       <Animated.View style={[styles.square, animatedStyles]}>
-        <Text style={styles.number}>{number}</Text>
+        <Text style={styles.number}>{square.number}</Text>
       </Animated.View>
     </GestureDetector>
   );
 };
 
 const ReorderableGrid: React.FC = () => {
-  const [squares, setSquares] = useState(
+  const [squares, setSquares] = useState<Square[]>(
     Array.from({ length: GRID_SIZE * GRID_SIZE }, (_, i) => ({
       id: i,
       number: i + 1,
@@ -69,55 +74,64 @@ const ReorderableGrid: React.FC = () => {
       y: Math.floor(i / GRID_SIZE) * (SQUARE_SIZE + GRID_PADDING),
     }))
   );
+  const [activeSquareId, setActiveSquareId] = useState<number | null>(null);
 
-  const handleDrag = (index: number, x: number, y: number) => {
-    // We don't need to update the state here, just for visual feedback if needed
+  const getPositionForIndex = (index: number) => ({
+    x: (index % GRID_SIZE) * (SQUARE_SIZE + GRID_PADDING),
+    y: Math.floor(index / GRID_SIZE) * (SQUARE_SIZE + GRID_PADDING),
+  });
+
+  const handleDrag = (id: number, x: number, y: number) => {
+    setActiveSquareId(id);
+    setSquares(currentSquares => {
+      const draggedSquareIndex = currentSquares.findIndex(s => s.id === id);
+      const newSquares = [...currentSquares];
+      
+      let swapIndex = draggedSquareIndex;
+      currentSquares.forEach((square, index) => {
+        if (index !== draggedSquareIndex) {
+          if (
+            Math.abs(x - square.x) < SQUARE_SIZE / 2 &&
+            Math.abs(y - square.y) < SQUARE_SIZE / 2
+          ) {
+            swapIndex = index;
+          }
+        }
+      });
+
+      if (swapIndex !== draggedSquareIndex) {
+        const draggedSquare = newSquares[draggedSquareIndex];
+        newSquares.splice(draggedSquareIndex, 1);
+        newSquares.splice(swapIndex, 0, draggedSquare);
+
+        return newSquares.map((square, index) => ({
+          ...square,
+          ...(square.id !== id ? getPositionForIndex(index) : {}),
+        }));
+      }
+
+      return currentSquares;
+    });
   };
 
-  const handleDragEnd = (index: number, x: number, y: number) => {
-    const draggedSquare = squares[index];
-    let newIndex = index;
-
-    // Check for overlap and find the new index
-    for (let i = 0; i < squares.length; i++) {
-      if (i !== index) {
-        const otherSquare = squares[i];
-        if (
-          Math.abs(x - otherSquare.x) < SQUARE_SIZE / 2 &&
-          Math.abs(y - otherSquare.y) < SQUARE_SIZE / 2
-        ) {
-          newIndex = i;
-          break;
-        }
-      }
-    }
-
-    // Reorder the squares array
-    if (newIndex !== index) {
-      const newSquares = [...squares];
-      newSquares.splice(index, 1);
-      newSquares.splice(newIndex, 0, draggedSquare);
-      
-      // Update positions after reordering
-      const updatedSquares = newSquares.map((square, i) => ({
+  const handleDragEnd = (id: number, x: number, y: number) => {
+    setActiveSquareId(null);
+    setSquares(currentSquares => 
+      currentSquares.map((square, index) => ({
         ...square,
-        x: (i % GRID_SIZE) * (SQUARE_SIZE + GRID_PADDING),
-        y: Math.floor(i / GRID_SIZE) * (SQUARE_SIZE + GRID_PADDING),
-      }));
-      
-      setSquares(updatedSquares);
-    }
+        ...getPositionForIndex(index),
+      }))
+    );
   };
 
   return (
     <GestureHandlerRootView style={styles.container}>
       <View style={styles.grid}>
-        {squares.map((square, index) => (
-          <Square
+        {squares.map((square) => (
+          <SquareComponent
             key={square.id}
-            index={index}
-            number={square.number}
-            position={{ x: square.x, y: square.y }}
+            square={square}
+            isActive={square.id === activeSquareId}
             onDrag={handleDrag}
             onDragEnd={handleDragEnd}
           />
