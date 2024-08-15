@@ -9,6 +9,7 @@ import MapView, { Marker } from 'react-native-maps';
 import Geocoder from 'react-native-geocoding';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import ImagePreview from '@/components/ImagePreview';
 
 const supabaseUrl = 'https://nkkaxelmylemiesxvmoz.supabase.co'
 
@@ -200,7 +201,7 @@ export default function CreatePost() {
       
       <Button title="Pick an image" onPress={pickImage} />
       {/* <View style={styles.imagePreviewContainer}> */}
-        <FlatList
+        {/* <FlatList
           data={images}
           renderItem={renderImageItem}
           keyExtractor={(item) => item.id}
@@ -212,8 +213,10 @@ export default function CreatePost() {
           <TouchableOpacity style={styles.placeholderImage} onPress={pickImage}>
             <Text style={styles.placeholderText}>+</Text>
           </TouchableOpacity>
-        )}
+        )} */}
       {/* </View> */}
+      <ImagePreview 
+      />
       <Button title="Select Location" onPress={() => setShowMap(true)} />
       {streetName && <TextInput style={styles.input} value={streetName} editable={false} />}
       <TextInput

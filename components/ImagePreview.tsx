@@ -67,7 +67,7 @@ const SquareComponent: React.FC<SquareProps> = ({ square, isActive, onDrag, onDr
   );
 };
 
-const ReorderableGrid: React.FC = () => {
+const ImagePreview: React.FC = () => {
   const [squares, setSquares] = useState<Square[]>(
     Array.from({ length: GRID_SIZE * GRID_SIZE }, (_, i) => ({
       id: i,
@@ -169,4 +169,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ReorderableGrid;
+export default ImagePreview;
