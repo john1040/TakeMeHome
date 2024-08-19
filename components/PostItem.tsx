@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, TextInput, FlatList } from 'react-native';
 import { supabase } from '@/lib/supabase';
-import { Heart } from 'lucide-react-native';
+import { Heart, Send } from 'lucide-react-native';
 import PagerView from 'react-native-pager-view';
+import { useAuth } from '@/hooks/useAuth';
+import { FlashList } from "@shopify/flash-list";
 
 export default function PostItem({ post, userId }) {
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [images, setImages] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const { userProfile, isLoading } = useAuth();
 
   const onPageSelected = (e) => {
     setCurrentPage(e.nativeEvent.position);
@@ -20,7 +25,39 @@ export default function PostItem({ post, userId }) {
     }
     fetchLikeCount();
     fetchImages();
+    fetchComments();
   }, [userId]);
+
+  const fetchComments = async () => {
+    const { data, error } = await supabase
+      .from('comments')
+      .select('id, content, created_at, user_id, username')
+      .eq('post_id', post.id)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching comments:', error);
+    } else {
+      setComments(data);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!userId || !newComment.trim()) return;
+
+    const { data, error } = await supabase
+      .from('comments')
+      .insert([{ post_id: post.id, user_id: userId, content: newComment.trim(), username: userProfile?.username }])
+      .select();
+
+    if (error) {
+      console.error('Error adding comment:', error);
+    } else {
+      setComments([...comments, data[0]]);
+      setNewComment('');
+    }
+  };
+
 
   const fetchImages = async () => {
     const { data, error } = await supabase
@@ -96,6 +133,14 @@ export default function PostItem({ post, userId }) {
     }
   };
 
+  const renderComment = ({ item }) => (
+    <View style={styles.commentContainer}>
+      <Text style={styles.commentUsername}>{item.username}</Text>
+      <Text style={styles.commentContent}>{item.content}</Text>
+      <Text style={styles.commentDate}>{new Date(item.created_at).toLocaleString()}</Text>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <Text style={styles.description}>{post.description}</Text>
@@ -137,6 +182,29 @@ export default function PostItem({ post, userId }) {
           />
         </TouchableOpacity>
         <Text style={styles.likeCount}>{likeCount} likes</Text>
+      </View>
+      <View style={styles.commentsSection}>
+        <Text style={styles.commentsHeader}>Comments</Text>
+        <View style={{minHeight: 2}}>
+          <FlashList
+            data={comments}
+            renderItem={renderComment}
+            keyExtractor={(item) => item.id}
+            // style={styles.commentsList}
+            estimatedItemSize={5}
+          />
+        </View>
+        <View style={styles.addCommentContainer}>
+          <TextInput
+            style={styles.commentInput}
+            value={newComment}
+            onChangeText={setNewComment}
+            placeholder="Add a comment..."
+          />
+          <TouchableOpacity onPress={handleAddComment} style={styles.sendButton}>
+            <Send size={24} color="#000" />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -208,5 +276,47 @@ const styles = StyleSheet.create({
   },
   paginationDotActive: {
     backgroundColor: '#000',
+  },
+  commentsSection: {
+    marginTop: 16,
+  },
+  commentsHeader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  commentsList: {
+    maxHeight: 200,
+  },
+  commentContainer: {
+    marginBottom: 8,
+  },
+  commentContent: {
+    fontSize: 14,
+  },
+  commentUsername: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  commentDate: {
+    fontSize: 12,
+    color: '#999',
+  },
+  addCommentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  commentInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 8,
+  },
+  sendButton: {
+    padding: 8,
   },
 });
