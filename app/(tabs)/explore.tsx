@@ -3,11 +3,11 @@ import { View, StyleSheet, Modal, Text, TouchableWithoutFeedback } from 'react-n
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { supabase } from '@/lib/supabase';
 import PostItem from '@/components/PostItem';
+import SlidingPostView from '@/components/SlidingPostView';
 
-export default function MapViewPosts({ userId }) {
+export default function MapViewPosts({ userId }: { userId: string }) {
   const [posts, setPosts] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -95,7 +95,10 @@ export default function MapViewPosts({ userId }) {
 
   const handleMarkerPress = (post) => {
     setSelectedPost(post);
-    setModalVisible(true);
+  };
+
+  const handleCloseSlider = () => {
+    setSelectedPost(null);
   };
 
   if (error) {
@@ -105,10 +108,11 @@ export default function MapViewPosts({ userId }) {
   return (
     <View style={styles.container}>
       <MapView
+        // provider={PROVIDER_GOOGLE}
         style={styles.map}
         initialRegion={{
-          latitude: 37.7749,
-          longitude: -122.4194,
+          latitude: 25.033964,
+          longitude: 121.564468,
           latitudeDelta: 0.0922,
           longitudeDelta: 0.0421,
         }}
@@ -124,24 +128,11 @@ export default function MapViewPosts({ userId }) {
         ))}
       </MapView>
 
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={closeModal}
-      >
-        <TouchableWithoutFeedback onPress={closeModal}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.modalContent}>
-                {selectedPost && (
-                  <PostItem post={selectedPost} userId={userId} />
-                )}
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+      <SlidingPostView
+        post={selectedPost}
+        userId={userId}
+        onClose={handleCloseSlider}
+      />
     </View>
   );
 }
@@ -154,19 +145,6 @@ const styles = StyleSheet.create({
   map: {
     width: '100%',
     height: '100%',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 20,
-    width: '90%',
-    maxHeight: '80%',
   },
   errorText: {
     color: 'red',
