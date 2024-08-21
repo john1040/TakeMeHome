@@ -13,6 +13,7 @@ export default function PostItem({ post, userId }) {
   const [currentPage, setCurrentPage] = useState(0);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
+  const [showAllComments, setShowAllComments] = useState(false);
   const { userProfile, isLoading } = useAuth();
 
   const onPageSelected = (e) => {
@@ -57,7 +58,6 @@ export default function PostItem({ post, userId }) {
       setNewComment('');
     }
   };
-
 
   const fetchImages = async () => {
     const { data, error } = await supabase
@@ -141,6 +141,10 @@ export default function PostItem({ post, userId }) {
     </View>
   );
 
+  const handleShowAllComments = () => {
+    setShowAllComments(true);
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.description}>{post.description}</Text>
@@ -187,13 +191,17 @@ export default function PostItem({ post, userId }) {
         <Text style={styles.commentsHeader}>Comments</Text>
         <View style={{minHeight: 2}}>
           <FlashList
-            data={comments}
+            data={showAllComments ? comments : comments.slice(0, 2)}
             renderItem={renderComment}
             keyExtractor={(item) => item.id}
-            // style={styles.commentsList}
             estimatedItemSize={5}
           />
         </View>
+        {!showAllComments && comments.length > 2 && (
+          <TouchableOpacity onPress={handleShowAllComments} >
+            <Text >View all {comments.length} comments</Text>
+          </TouchableOpacity>
+        )}
         <View style={styles.addCommentContainer}>
           <TextInput
             style={styles.commentInput}
