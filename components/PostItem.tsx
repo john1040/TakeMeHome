@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, TextInput, FlatList } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity, TextInput, Animated, Dimensions, PanResponder } from 'react-native';
 import { supabase } from '@/lib/supabase';
-import { Heart, Send } from 'lucide-react-native';
+import { Heart, Send, X } from 'lucide-react-native';
 import PagerView from 'react-native-pager-view';
 import { useAuth } from '@/hooks/useAuth';
 import { FlashList } from "@shopify/flash-list";
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const SWIPE_THRESHOLD = SCREEN_WIDTH / 3;
 
 export default function PostItem({ post, userId }) {
   const [isLiked, setIsLiked] = useState(false);
@@ -15,7 +18,30 @@ export default function PostItem({ post, userId }) {
   const [newComment, setNewComment] = useState('');
   const [showAllComments, setShowAllComments] = useState(false);
   const { userProfile, isLoading } = useAuth();
-
+  const [showFullComments, setShowFullComments] = useState(false);
+  const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        return Math.abs(gestureState.dx) > 5;
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        if (gestureState.dx > 0) {
+          slideAnim.setValue(gestureState.dx);
+        }
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if (gestureState.dx > SWIPE_THRESHOLD) {
+          handleCloseComments();
+        } else {
+          Animated.spring(slideAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
   const onPageSelected = (e) => {
     setCurrentPage(e.nativeEvent.position);
   };
@@ -133,6 +159,23 @@ export default function PostItem({ post, userId }) {
     }
   };
 
+
+  const handleShowAllComments = () => {
+    setShowFullComments(true);
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleCloseComments = () => {
+    Animated.timing(slideAnim, {
+      toValue: SCREEN_WIDTH,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => setShowFullComments(false));
+  };
+
   const renderComment = ({ item }) => (
     <View style={styles.commentContainer}>
       <Text style={styles.commentUsername}>{item.username}</Text>
@@ -140,10 +183,6 @@ export default function PostItem({ post, userId }) {
       <Text style={styles.commentDate}>{new Date(item.created_at).toLocaleString()}</Text>
     </View>
   );
-
-  const handleShowAllComments = () => {
-    setShowAllComments(true);
-  };
 
   return (
     <View style={styles.container}>
@@ -191,15 +230,15 @@ export default function PostItem({ post, userId }) {
         <Text style={styles.commentsHeader}>Comments</Text>
         <View style={{minHeight: 2}}>
           <FlashList
-            data={showAllComments ? comments : comments.slice(0, 2)}
+            data={comments.slice(0, 2)}
             renderItem={renderComment}
             keyExtractor={(item) => item.id}
             estimatedItemSize={5}
           />
         </View>
-        {!showAllComments && comments.length > 2 && (
-          <TouchableOpacity onPress={handleShowAllComments} >
-            <Text >View all {comments.length} comments</Text>
+        {comments.length > 2 && (
+          <TouchableOpacity onPress={handleShowAllComments}>
+            <Text>View all {comments.length} comments</Text>
           </TouchableOpacity>
         )}
         <View style={styles.addCommentContainer}>
@@ -214,6 +253,39 @@ export default function PostItem({ post, userId }) {
           </TouchableOpacity>
         </View>
       </View>
+      {showFullComments && (
+        <Animated.View 
+          style={[
+            styles.fullCommentsView, 
+            { transform: [{ translateX: slideAnim }] }
+          ]}
+          {...panResponder.panHandlers}
+        >
+          <View style={styles.fullCommentsHeader}>
+            <Text style={styles.fullCommentsTitle}>Comments</Text>
+            <TouchableOpacity onPress={handleCloseComments}>
+              <X size={24} color="#000" />
+            </TouchableOpacity>
+          </View>
+          <FlashList
+            data={comments}
+            renderItem={renderComment}
+            keyExtractor={(item) => item.id}
+            estimatedItemSize={5}
+          />
+          <View style={styles.addCommentContainer}>
+            <TextInput
+              style={styles.commentInput}
+              value={newComment}
+              onChangeText={setNewComment}
+              placeholder="Add a comment..."
+            />
+            <TouchableOpacity onPress={handleAddComment} style={styles.sendButton}>
+              <Send size={24} color="#000" />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -326,5 +398,25 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     padding: 8,
+  },
+  fullCommentsView: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius:8
+  },
+  fullCommentsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  fullCommentsTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
   },
 });

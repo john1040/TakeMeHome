@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { View, StyleSheet, Animated, PanResponder, Dimensions } from 'react-native';
+import { View, StyleSheet, Animated, PanResponder, Dimensions, TouchableWithoutFeedback } from 'react-native';
 import PostItem from '@/components/PostItem';
 
 const { height } = Dimensions.get('window');
@@ -12,30 +12,45 @@ interface SlidingPostViewProps {
 
 const SlidingPostView: React.FC<SlidingPostViewProps> = ({ post, userId, onClose }) => {
   const pan = useRef(new Animated.ValueXY({ x: 0, y: height })).current;
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (post) {
-      Animated.spring(pan, {
-        toValue: { x: 0, y: 0 },
-        useNativeDriver: false,
-      }).start();
+      Animated.parallel([
+        Animated.spring(pan, {
+          toValue: { x: 0, y: 0 },
+          useNativeDriver: false,
+        }),
+        Animated.timing(overlayOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        })
+      ]).start();
     }
   }, [post]);
 
   const panResponder = PanResponder.create({
     onMoveShouldSetPanResponder: () => true,
-    onPanResponderMove: Animated.event([null, { dy: pan.y }], { useNativeDriver: false }),
+    onPanResponderMove: (_, gestureState) => {
+      pan.y.setValue(Math.max(0, gestureState.dy));
+      overlayOpacity.setValue(Math.max(0, 1 - gestureState.dy / (height * 0.5)));
+    },
     onPanResponderRelease: (_, gestureState) => {
       if (gestureState.dy > 50) {
-        Animated.spring(pan, {
-          toValue: { x: 0, y: height },
-          useNativeDriver: false,
-        }).start(onClose);
+        closeSlider();
       } else {
-        Animated.spring(pan, {
-          toValue: { x: 0, y: 0 },
-          useNativeDriver: false,
-        }).start();
+        Animated.parallel([
+          Animated.spring(pan, {
+            toValue: { x: 0, y: 0 },
+            useNativeDriver: false,
+          }),
+          Animated.timing(overlayOpacity, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          })
+        ]).start();
       }
     },
   });
@@ -46,20 +61,51 @@ const SlidingPostView: React.FC<SlidingPostViewProps> = ({ post, userId, onClose
     extrapolate: 'clamp',
   });
 
+  const closeSlider = () => {
+    Animated.parallel([
+      Animated.timing(pan.y, {
+        toValue: height,
+        duration: 300,
+        useNativeDriver: false,
+      }),
+      Animated.timing(overlayOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      })
+    ]).start(onClose);
+  };
+
   if (!post) return null;
 
   return (
-    <Animated.View
-      style={[styles.container, { transform: [{ translateY: slideAnimation }] }]}
-      {...panResponder.panHandlers}
-    >
-      <View style={styles.handle} />
-      <PostItem post={post} userId={userId} />
-    </Animated.View>
+    <TouchableWithoutFeedback onPress={closeSlider}>
+      <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
+        <Animated.View
+          style={[styles.container, { transform: [{ translateY: slideAnimation }] }]}
+          {...panResponder.panHandlers}
+        >
+          <TouchableWithoutFeedback>
+            <View style={styles.content}>
+              <View style={styles.handle} />
+              <PostItem post={post} userId={userId} />
+            </View>
+          </TouchableWithoutFeedback>
+        </Animated.View>
+      </Animated.View>
+    </TouchableWithoutFeedback>
   );
 };
 
 const styles = StyleSheet.create({
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
   container: {
     position: 'absolute',
     bottom: 0,
@@ -69,12 +115,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
     elevation: 5,
+  },
+  content: {
+    padding: 20,
+    flex: 1,
   },
   handle: {
     width: 40,
