@@ -3,91 +3,93 @@ import {
   GoogleSigninButton,
   statusCodes,
 } from '@react-native-google-signin/google-signin'
-import React, { useState } from 'react'
-import { Alert, StyleSheet, Text, View } from 'react-native'
+import React from 'react'
+import { Alert, StyleSheet, View } from 'react-native'
 import { supabase } from '@/lib/supabase'
-import { Redirect, useRouter } from 'expo-router'
-import { Button } from '@rneui/themed'
+import { useRouter } from 'expo-router'
 
-export default function () {
+export default function Auth() {
   const router = useRouter();
-  const signOut = async () => {
-    GoogleSignin.revokeAccess();
-    GoogleSignin.signOut();
-    router.replace("/");
-  };
+
   GoogleSignin.configure({
     scopes: ['https://www.googleapis.com/auth/drive.readonly'],
     webClientId: '979781725310-827r3gjqhj49bstcln2r7sj280d359rd.apps.googleusercontent.com',
     iosClientId: '979781725310-7gn3d2lqf7rhsqk492gcv7otb58midre.apps.googleusercontent.com'
   })
 
+  const handleGoogleSignIn = async () => {
+    try {
+      await GoogleSignin.hasPlayServices()
+      const userInfo = await GoogleSignin.signIn()
+
+      if (userInfo.idToken && userInfo.user && userInfo.user.email) {
+        const { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: userInfo.idToken,
+        })
+
+        if (authError) {
+          console.error('Error signing in with Google:', authError)
+          Alert.alert('Error', 'Failed to sign in with Google')
+          return
+        }
+
+        console.log('Signed in with Google:', authData)
+
+        // Check if the user already has a profile
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('username, phone_verified')
+          .eq('email', userInfo.user.email)
+          .single()
+
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error('Error fetching profile:', profileError)
+          Alert.alert('Error', 'Failed to fetch user profile')
+          return
+        }
+
+        if (!profileData || !profileData.username) {
+          console.log('New user, redirecting to phone verification')
+          router.replace('/PhoneVerification')
+        } else if (!profileData.phone_verified) {
+          console.log('Existing user, phone not verified, redirecting to phone verification')
+          router.replace('/PhoneVerification')
+        } else {
+          console.log('Existing user with verified phone, redirecting to profile')
+          router.replace('/profile')
+        }
+      } else {
+        throw new Error('No ID token present!')
+      }
+    } catch (error: any) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        console.log('Sign in cancelled')
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        console.log('Sign in already in progress')
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('Error', 'Play services not available or outdated')
+      } else {
+        console.error('Unexpected error during Google sign in:', error)
+        Alert.alert('Error', 'An unexpected error occurred')
+      }
+    }
+  }
+
   return (
     <View style={styles.container}>
       <GoogleSigninButton
         size={GoogleSigninButton.Size.Wide}
         color={GoogleSigninButton.Color.Dark}
-        onPress={async () => {
-          try {
-            await GoogleSignin.hasPlayServices()
-            const userInfo = await GoogleSignin.signIn()
-            // console.log(userInfo)
-            if (userInfo.idToken && userInfo.user && userInfo.user.email) {
-              const { data, error } = await supabase.auth.signInWithIdToken({
-                provider: 'google',
-                token: userInfo.idToken,
-              })
-
-              console.log(userInfo.user.email)
-let { data: profileData, error: thiserr} = await supabase
-.from('profiles').select('username').eq('email', userInfo.user.email).single()
-                console.log(profileData)
-                console.log(thiserr)
-                const a = JSON.stringify(profileData)
-                console.log(a)
-//               const { profileData, err } = await supabase.from('profiles').select().eq('email', userInfo.user.email)
-              
-              if (profileData?.username !== null) {
-                router.replace('/profile')
-              } else {
-                console.log('user is new')
-        
-        
-                router.replace('/setup-profile')
-              }
-            } else {
-              throw new Error('no ID token present!')
-            }
-          } catch (error: any) {
-            if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-              // user cancelled the login flow
-            } else if (error.code === statusCodes.IN_PROGRESS) {
-              // operation (e.g. sign in) is in progress already
-            } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-              // play services not available or outdated
-            } else {
-              // some other error happened
-            }
-          }
-        }}
+        onPress={handleGoogleSignIn}
       />
     </View>
-
   )
 }
-
 
 const styles = StyleSheet.create({
   container: {
     marginTop: 40,
     padding: 12,
-  },
-  verticallySpaced: {
-    paddingTop: 4,
-    paddingBottom: 4,
-    alignSelf: 'stretch',
-  },
-  mt20: {
-    marginTop: 20,
   },
 })

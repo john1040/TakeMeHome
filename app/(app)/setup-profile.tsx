@@ -11,6 +11,7 @@ export default function SetupProfile() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { session, isLoading } = useAuth();
+  console.log('IN SETUP PROFILE')
   const updateProfileMutation = useMutation({
     mutationFn: async (newUsername: string) => {
       // const { data: { user } } = await supabase.auth.getUser();
