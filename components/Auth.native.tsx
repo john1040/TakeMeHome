@@ -7,6 +7,7 @@ import React from 'react'
 import { Alert, StyleSheet, View } from 'react-native'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'expo-router'
+import CustomGoogleSignInButton from './CustomGoogleSignInButton'
 
 export default function Auth() {
   const router = useRouter();
@@ -78,11 +79,7 @@ export default function Auth() {
 
   return (
     <View style={styles.container}>
-      <GoogleSigninButton
-        size={GoogleSigninButton.Size.Wide}
-        color={GoogleSigninButton.Color.Dark}
-        onPress={handleGoogleSignIn}
-      />
+      <CustomGoogleSignInButton onPress={handleGoogleSignIn} />
     </View>
   )
 }

@@ -5,35 +5,51 @@ import { Session } from '@supabase/supabase-js';
 export function useAuth() {
   const queryClient = useQueryClient();
 
-  const { data: session, isLoading: sessionLoading } = useQuery<Session | null>({
-    queryKey: ['session'],
+  const { data: sessionData, isLoading: sessionLoading, error: sessionError } = useQuery<{
+    session: Session | null;
+    profile: any | null;
+  }>({
+    queryKey: ['sessionAndProfile'],
     queryFn: async () => {
-      const { data } = await supabase.auth.getSession();
-      return data.session;
-    },
-  });
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData.session;
 
-  const { data: userProfile, isLoading: profileLoading } = useQuery({
-    queryKey: ['userProfile', session?.user?.id],
-    queryFn: async () => {
-      if (!session?.user?.id) return null;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('username, id')
-        .eq('email', session.user.email)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!session?.user?.id,
-  });
+      if (session?.user?.id) {
+        const { data: profiles, error } = await supabase
+          .from('profiles')
+          .select('username, id')
+          .eq('email', session.user.email);
 
-  // ... rest of the hook (signOut, etc.)
+        if (error) throw error;
+
+        let profile = null;
+        if (profiles && profiles.length > 0) {
+          profile = profiles[0];  // Take the first profile if multiple exist
+        } else {
+          // Handle case where no profile exists
+          console.warn('No profile found for user');
+          // Optionally, you could create a profile here
+          // const { data: newProfile, error: createError } = await supabase
+          //   .from('profiles')
+          //   .insert({ email: session.user.email })
+          //   .single();
+          // if (createError) throw createError;
+          // profile = newProfile;
+        }
+
+        return { session, profile };
+      }
+
+      return { session: null, profile: null };
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
 
   return { 
-    session, 
-    userProfile, 
-    isLoading: sessionLoading || profileLoading,
-    // ... other returned values
+    session: sessionData?.session,
+    userProfile: sessionData?.profile,
+    isLoading: sessionLoading,
+    error: sessionError,
   };
 }

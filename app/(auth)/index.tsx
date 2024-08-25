@@ -1,24 +1,29 @@
 import 'react-native-url-polyfill/auto'
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { View, StyleSheet, ActivityIndicator } from 'react-native'
 import Auth from '@/components/Auth'
-import { View, Text, StyleSheet } from 'react-native'
-import { Session } from '@supabase/supabase-js'
 import { useAuth } from '@/hooks/useAuth'
-import { Button } from '@rneui/themed'
 import { ThemedText } from '@/components/ThemedText'
 
 export default function App() {
-  const { session, isLoading } = useAuth();
+  const { session, isLoading, error } = useAuth();
+
   if (isLoading) {
     return (
-      <View style={styles.outer}>
-      <View style={styles.container}>
-        <Text>loading...</Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <ThemedText style={styles.loadingText}>Loading...</ThemedText>
       </View>
-    </View>
     )
   }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText>
+      </View>
+    )
+  }
+
   return (
     <View style={styles.outer}>
       <View style={styles.container}>
@@ -28,7 +33,6 @@ export default function App() {
         <Auth />
       </View>
     </View>
-
   )
 }
 
@@ -49,6 +53,17 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     justifyContent: 'flex-end',
     alignItems: 'center'
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+  },
+  errorText: {
+    color: 'red',
   },
   verticallySpaced: {
     paddingTop: 4,
