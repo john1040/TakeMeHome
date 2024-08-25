@@ -1,17 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { StyleSheet, Image, Platform, Alert } from 'react-native';
-
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
+import { StyleSheet } from 'react-native';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Session } from '@supabase/supabase-js';
 import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@rneui/themed';
+import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
+import ThemedButton from '@/components/ThemeButton';
+import { Alert } from 'react-native';
 
 export default function TabTwoScreen() {
   const { userProfile, isLoading } = useAuth();
@@ -35,20 +31,19 @@ export default function TabTwoScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              // Add the API call to delete the user account here
-              console.log(userProfile?.id)
               const { error: profileDeleteError } = await supabase
-              .from('profiles')
-              .delete()
-              .eq('id', userProfile?.id);
+                .from('profiles')
+                .delete()
+                .eq('id', userProfile?.id);
               if (profileDeleteError) throw profileDeleteError;
               const { error: deleteError } = await supabase.auth.admin.deleteUser(
                 userProfile?.id as string
               );
               
-              if (deleteError){
-                console.log(deleteError)
-                 throw deleteError;}
+              if (deleteError) {
+                console.log(deleteError);
+                throw deleteError;
+              }
               await supabase.auth.signOut();
               router.replace('/');
             } catch (error) {
@@ -61,19 +56,20 @@ export default function TabTwoScreen() {
     );
   };
 
+  const handleNavigateToMyPosts = () => {
+    router.push('/my-posts');
+  };
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
       headerImage={<Ionicons size={310} name="code-slash" style={styles.headerImage} />}>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome Back {userProfile?.username}</ThemedText>
+        <ThemedText type="title">我的帳號 {userProfile?.username}</ThemedText>
       </ThemedView>
-      <Button onPress={handleSignOut} style={styles.button}>
-        Sign Out
-      </Button>
-      <Button onPress={handleDeleteAccount} buttonStyle={styles.deleteButton} titleStyle={styles.deleteButtonText}>
-        Delete Account
-      </Button>
+      <ThemedButton type='default' onPress={handleNavigateToMyPosts} title='我的貼文' />
+      <ThemedButton type='default' onPress={handleSignOut} title='登出' />
+      <ThemedButton type='danger' onPress={handleDeleteAccount} title='刪除帳號' />
     </ParallaxScrollView>
   );
 }
@@ -88,15 +84,5 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     gap: 8,
-  },
-  button: {
-    marginTop: 10,
-  },
-  deleteButton: {
-    marginTop: 10,
-    backgroundColor: 'red',
-  },
-  deleteButtonText: {
-    color: 'white',
   },
 });
