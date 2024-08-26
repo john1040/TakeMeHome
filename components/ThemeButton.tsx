@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle, StyleProp } from 'react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
 
 export type ThemedButtonProps = {
   onPress: () => void;
-  title: string;
+  title?: string;
   lightColor?: string;
   darkColor?: string;
   type?: 'default' | 'primary' | 'danger' | 'secondary';
   size?: 'small' | 'medium' | 'large';
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
+  children?: ReactNode;
+  disabled?: boolean;
 };
 
 export function ThemedButton({
@@ -22,6 +24,8 @@ export function ThemedButton({
   size = 'medium',
   style,
   textStyle,
+  children,
+  disabled = false,
 }: ThemedButtonProps) {
   const backgroundColor = useThemeColor({ light: lightColor, dark: darkColor }, 'background');
   const textColor = useThemeColor({ light: 'black', dark: 'white' }, 'text');
@@ -38,26 +42,33 @@ export function ThemedButton({
         type === 'primary' ? styles.buttonPrimary : undefined,
         type === 'danger' ? styles.buttonDanger : undefined,
         type === 'secondary' ? styles.buttonSecondary : undefined,
+        disabled ? styles.buttonDisabled : undefined,
         style,
       ]}
       onPress={onPress}
+      disabled={disabled}
     >
-      <Text
-        style={[
-          styles.text,
-          { color: textColor },
-          size === 'small' ? styles.textSmall : undefined,
-          size === 'medium' ? styles.textMedium : undefined,
-          size === 'large' ? styles.textLarge : undefined,
-          type === 'default' ? styles.textDefault : undefined,
-          type === 'primary' ? styles.textPrimary : undefined,
-          type === 'danger' ? styles.textDanger : undefined,
-          type === 'secondary' ? styles.textSecondary : undefined,
-          textStyle,
-        ]}
-      >
-        {title}
-      </Text>
+      {children ? (
+        children
+      ) : (
+        <Text
+          style={[
+            styles.text,
+            { color: textColor },
+            size === 'small' ? styles.textSmall : undefined,
+            size === 'medium' ? styles.textMedium : undefined,
+            size === 'large' ? styles.textLarge : undefined,
+            type === 'default' ? styles.textDefault : undefined,
+            type === 'primary' ? styles.textPrimary : undefined,
+            type === 'danger' ? styles.textDanger : undefined,
+            type === 'secondary' ? styles.textSecondary : undefined,
+            disabled ? styles.textDisabled : undefined,
+            textStyle,
+          ]}
+        >
+          {title}
+        </Text>
+      )}
     </TouchableOpacity>
   );
 }
@@ -120,6 +131,12 @@ const styles = StyleSheet.create({
   },
   textSecondary: {
     color: 'black',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  textDisabled: {
+    opacity: 0.5,
   },
 });
 

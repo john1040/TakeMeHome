@@ -20,7 +20,7 @@
     "@react-native-community/netinfo": "11.3.1",
     "@react-native-google-signin/google-signin": "^12.2.1",
     "@react-native-picker/picker": "^2.7.7",
-    "@react-navigation/native": "^6.0.2",
+    "@react-navigation/native": "^6.1.18",
     "@rneui/themed": "^4.0.0-rc.8",
     "@shopify/flash-list": "^1.7.1",
     "@supabase/supabase-js": "^2.45.0",
