@@ -4,8 +4,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import * as FileSystem from 'expo-file-system';
+import * as ImageManipulator from 'expo-image-manipulator';
 
-const supabaseUrl = 'https://nkkaxelmylemiesxvmoz.supabase.co'; // Make sure this is correct for your setup
+const supabaseUrl = 'https://nkkaxelmylemiesxvmoz.supabase.co';
 
 export default function ReviewSubmit() {
   const { images, description, latitude, longitude, streetName } = useLocalSearchParams();
@@ -23,22 +24,40 @@ export default function ReviewSubmit() {
     try {
       console.log('Starting image upload process...');
       const uploadedImages = await Promise.all(parsedImages.map(async (image, index) => {
-        const fileInfo = await FileSystem.getInfoAsync(image);
-        const base64 = await FileSystem.readAsStringAsync(image, { encoding: FileSystem.EncodingType.Base64 });
-        const arrayBuffer = new Uint8Array(atob(base64).split('').map(char => char.charCodeAt(0))).buffer;
+        try {
+          console.log(`Processing image ${index + 1}:`, image);
+          
+          // Convert the image to a local file URI if it's not already
+          const localUri = image.startsWith('file://') ? image : await convertToLocalUri(image);
+          
+          console.log('Local URI:', localUri);
+          
+          const fileInfo = await FileSystem.getInfoAsync(localUri);
+          console.log('File info:', fileInfo);
+          
+          if (!fileInfo.exists) {
+            throw new Error(`File does not exist: ${localUri}`);
+          }
+          
+          const base64 = await FileSystem.readAsStringAsync(localUri, { encoding: FileSystem.EncodingType.Base64 });
+          const arrayBuffer = new Uint8Array(atob(base64).split('').map(char => char.charCodeAt(0))).buffer;
 
-        const filename = image.split('/').pop();
-        const fileExt = filename?.split('.').pop();
-        
-        const { data: imageData, error: imageError } = await supabase.storage
-          .from('post-images')
-          .upload(`${Date.now()}-${index}-${filename}`, arrayBuffer, {
-            contentType: `image/${fileExt}`
-          });
+          const filename = localUri.split('/').pop();
+          const fileExt = filename?.split('.').pop();
 
-        if (imageError) throw imageError;
-        
-        return `${supabaseUrl}/storage/v1/object/public/post-images/${imageData.path}`;
+          const { data: imageData, error: imageError } = await supabase.storage
+            .from('post-images')
+            .upload(`${Date.now()}-${index}-${filename}`, arrayBuffer, {
+              contentType: `image/${fileExt}`
+            });
+
+          if (imageError) throw imageError;
+
+          return `${supabaseUrl}/storage/v1/object/public/post-images/${imageData.path}`;
+        } catch (error) {
+          console.error(`Error processing image ${index + 1}:`, error);
+          throw error;
+        }
       }));
 
       const { data, error } = await supabase
@@ -69,18 +88,24 @@ export default function ReviewSubmit() {
         {
           text: 'OK',
           onPress: () => {
-            // Navigate back to the main tab view
-            
             router.replace('/(tabs)/create-post');
             router.replace('/(tabs)');
-            
           }
         }
       ]);
     } catch (error) {
       console.error('Error in handleSubmit:', error);
-      Alert.alert('Error', 'Failed to create post. Please try again.');
+      Alert.alert('Error', `Failed to create post. ${error.message}`);
     }
+  };
+
+  const convertToLocalUri = async (uri: string): Promise<string> => {
+    // If it's already a file URI, return it
+    if (uri.startsWith('file://')) return uri;
+
+    // For asset-library URIs or other types, we'll use ImageManipulator to create a local copy
+    const manipulateResult = await ImageManipulator.manipulateAsync(uri, [], { format: 'png' });
+    return manipulateResult.uri;
   };
 
   return (

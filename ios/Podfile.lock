@@ -246,6 +246,9 @@ PODS:
     - ExpoModulesCore
   - ExpoKeepAwake (13.0.2):
     - ExpoModulesCore
+  - ExpoMediaLibrary (16.0.4):
+    - ExpoModulesCore
+    - React-Core
   - ExpoModulesCore (1.12.18):
     - DoubleConversion
     - glog
@@ -1629,6 +1632,7 @@ DEPENDENCIES:
   - ExpoImageManipulator (from `../node_modules/expo-image-manipulator/ios`)
   - ExpoImagePicker (from `../node_modules/expo-image-picker/ios`)
   - ExpoKeepAwake (from `../node_modules/expo-keep-awake/ios`)
+  - ExpoMediaLibrary (from `../node_modules/expo-media-library/ios`)
   - ExpoModulesCore (from `../node_modules/expo-modules-core`)
   - ExpoSystemUI (from `../node_modules/expo-system-ui/ios`)
   - ExpoWebBrowser (from `../node_modules/expo-web-browser/ios`)
@@ -1753,6 +1757,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-image-picker/ios"
   ExpoKeepAwake:
     :path: "../node_modules/expo-keep-awake/ios"
+  ExpoMediaLibrary:
+    :path: "../node_modules/expo-media-library/ios"
   ExpoModulesCore:
     :path: "../node_modules/expo-modules-core"
   ExpoSystemUI:
@@ -1915,6 +1921,7 @@ SPEC CHECKSUMS:
   ExpoImageManipulator: aea99205c66043a00a0af90e345395637b9902fa
   ExpoImagePicker: 12a420923383ae38dccb069847218f27a3b87816
   ExpoKeepAwake: 3b8815d9dd1d419ee474df004021c69fdd316d08
+  ExpoMediaLibrary: 250bf2659264163e428da5f867493b4cccd35ef9
   ExpoModulesCore: 30e1ed4659356cb9a84e0e5ddf1d090d735973c1
   ExpoSystemUI: d4f065a016cae6721b324eb659cdee4d4cf0cb26
   ExpoWebBrowser: 7595ccac6938eb65b076385fd23d035db9ecdc8e
