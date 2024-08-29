@@ -10,22 +10,25 @@ export default function MyPosts() {
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const { userProfile } = useAuth();
   const onEndReachedCalledDuringMomentum = useRef(true);
 
   useEffect(() => {
     if (userProfile?.id) {
-      fetchPosts();
+      fetchPosts(true);
     }
   }, [userProfile]);
 
-  const fetchPosts = useCallback(async (refresh = false) => {
+  const fetchPosts = useCallback(async (refresh = false, extraPosts = 0) => {
     if (isLoading || (!hasMore && !refresh)) return;
     setIsLoading(true);
 
     try {
+      const fetchCount = refresh ? POSTS_PER_PAGE : POSTS_PER_PAGE + extraPosts;
+      const startRange = refresh ? 0 : posts.length;
+      const endRange = startRange + fetchCount - 1;
+
       const { data, error } = await supabase
         .from('post')
         .select(`
@@ -38,11 +41,11 @@ export default function MyPosts() {
         `)
         .eq('user_id', userProfile?.id)
         .order('created_at', { ascending: false })
-        .range(refresh ? 0 : page * POSTS_PER_PAGE, refresh ? POSTS_PER_PAGE - 1 : (page + 1) * POSTS_PER_PAGE - 1);
+        .range(startRange, endRange);
 
       if (error) throw error;
 
-      if (data.length < POSTS_PER_PAGE) {
+      if (data.length < fetchCount) {
         setHasMore(false);
       } else {
         setHasMore(true);
@@ -50,10 +53,8 @@ export default function MyPosts() {
 
       if (refresh) {
         setPosts(data);
-        setPage(1);
       } else {
         setPosts(prevPosts => [...prevPosts, ...data]);
-        setPage(prevPage => prevPage + 1);
       }
     } catch (error) {
       console.error('Error fetching posts:', error);
@@ -61,9 +62,30 @@ export default function MyPosts() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [page, isLoading, hasMore, userProfile]);
+  }, [posts.length, isLoading, hasMore, userProfile]);
 
-  const renderItem = ({ item }) => <PostItem post={item} userId={userProfile?.id} />;
+  const handleDeletePost = useCallback(async (postId) => {
+    setPosts(prevPosts => {
+      const newPosts = prevPosts.filter(post => post.id !== postId);
+      const deletedCount = prevPosts.length - newPosts.length;
+      
+      if (deletedCount > 0 && newPosts.length < POSTS_PER_PAGE && hasMore) {
+        // Fetch more posts to replace the deleted ones
+        fetchPosts(false, deletedCount);
+      }
+      
+      return newPosts;
+    });
+  }, [fetchPosts, hasMore]);
+
+  const renderItem = ({ item }) => (
+    <PostItem
+      post={item}
+      userId={userProfile?.id}
+      showDelete={true}
+      onDelete={handleDeletePost}
+    />
+  );
 
   const renderFooter = () => {
     if (!isLoading || isRefreshing) return null;
@@ -75,7 +97,7 @@ export default function MyPosts() {
   };
 
   const handleLoadMore = () => {
-    if (!onEndReachedCalledDuringMomentum.current) {
+    if (!onEndReachedCalledDuringMomentum.current && hasMore) {
       fetchPosts();
       onEndReachedCalledDuringMomentum.current = true;
     }

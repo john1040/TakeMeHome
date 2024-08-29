@@ -14,8 +14,6 @@ export default function SetupProfile() {
   console.log('IN SETUP PROFILE')
   const updateProfileMutation = useMutation({
     mutationFn: async (newUsername: string) => {
-      // const { data: { user } } = await supabase.auth.getUser();
-      console.log('here', username)
       if (!session || !session.user) throw new Error('No user found');
       if(username === '') throw new Error('empty username');
       const { data, error } = await supabase

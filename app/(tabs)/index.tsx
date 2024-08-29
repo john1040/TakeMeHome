@@ -47,24 +47,30 @@ export default function PostFeed() {
           created_at,
           street_name,
           user_id,
-          image:image(url)
+          image:image(url),
+          profiles:profiles!post_user_id_fkey(username)
         `)
         .order('created_at', { ascending: false })
         .range(refresh ? 0 : page * POSTS_PER_PAGE, refresh ? POSTS_PER_PAGE - 1 : (page + 1) * POSTS_PER_PAGE - 1);
 
       if (error) throw error;
-
+      console.log(data[0])
       if (data.length < POSTS_PER_PAGE) {
         setHasMore(false);
       } else {
         setHasMore(true);
       }
 
+      const postsWithUsername = data.map(post => ({
+        ...post,
+        username: post.profiles.username
+      }));
+
       if (refresh) {
-        setPosts(data);
+        setPosts(postsWithUsername);
         setPage(1);
       } else {
-        setPosts(prevPosts => [...prevPosts, ...data]);
+        setPosts(prevPosts => [...prevPosts, ...postsWithUsername]);
         setPage(prevPage => prevPage + 1);
       }
     } catch (error) {

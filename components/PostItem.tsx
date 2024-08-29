@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, TextInput, Animated, Dimensions, PanResponder } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, TextInput, Animated, Dimensions, PanResponder, Alert } from 'react-native';
 import { supabase } from '@/lib/supabase';
-import { Heart, Send, X } from 'lucide-react-native';
+import { Heart, Send, X, Trash2 } from 'lucide-react-native';
 import PagerView from 'react-native-pager-view';
 import { useAuth } from '@/hooks/useAuth';
 import { FlashList } from "@shopify/flash-list";
@@ -9,7 +9,7 @@ import { FlashList } from "@shopify/flash-list";
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH / 3;
 
-export default function PostItem({ post, userId }) {
+export default function PostItem({ post, userId, showDelete, onDelete }) {
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [images, setImages] = useState([]);
@@ -184,8 +184,44 @@ export default function PostItem({ post, userId }) {
     </View>
   );
 
+  const handleDelete = () => {
+    if (post.user_id !== userId) {
+      console.error('Unauthorized delete attempt');
+      return;
+    }
+
+    Alert.alert(
+      "Delete Post",
+      "Are you sure you want to delete this post?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('post')
+                .delete()
+                .eq('id', post.id)
+                .eq('user_id', userId);  // Ensure the post belongs to the current user
+
+              if (error) throw error;
+
+              onDelete(post.id);
+            } catch (error) {
+              console.error('Error deleting post:', error);
+              Alert.alert("Error", "Failed to delete post. Please try again.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
+      <Text style={styles.username}>{post?.profiles?.username}</Text>
       <Text style={styles.description}>{post.description}</Text>
       {images.length > 0 && (
         <PagerView
@@ -213,18 +249,25 @@ export default function PostItem({ post, userId }) {
       </View>
       <Text style={styles.location}>{post.street_name}</Text>
       <Text style={styles.date}>{new Date(post.created_at).toLocaleString()}</Text>
-      <View style={styles.likeContainer}>
-        <TouchableOpacity
-          onPress={handleLikeUnlike}
-          style={styles.touchable}
-        >
-          <Heart
-            size={24}
-            color={isLiked ? '#e31b23' : '#000'}
-            fill={isLiked ? '#e31b23' : 'none'}
-          />
-        </TouchableOpacity>
-        <Text style={styles.likeCount}>{likeCount} likes</Text>
+      <View style={styles.actionContainer}>
+        <View style={styles.likeContainer}>
+          <TouchableOpacity
+            onPress={handleLikeUnlike}
+            style={styles.touchable}
+          >
+            <Heart
+              size={24}
+              color={isLiked ? '#e31b23' : '#000'}
+              fill={isLiked ? '#e31b23' : 'none'}
+            />
+          </TouchableOpacity>
+          <Text style={styles.likeCount}>{likeCount} likes</Text>
+        </View>
+        {showDelete && post.user_id === userId && (
+          <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
+            <Trash2 size={24} color="#e31b23" />
+          </TouchableOpacity>
+        )}
       </View>
       <View style={styles.commentsSection}>
         <Text style={styles.commentsHeader}>Comments</Text>
@@ -418,5 +461,18 @@ const styles = StyleSheet.create({
   fullCommentsTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+  },
+  actionContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  deleteButton: {
+    padding: 10,
+  },
+  username: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
   },
 });

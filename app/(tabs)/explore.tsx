@@ -1,18 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Modal, Text, TouchableWithoutFeedback } from 'react-native';
+import { View, StyleSheet, Text, Alert } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { supabase } from '@/lib/supabase';
-import PostItem from '@/components/PostItem';
 import SlidingPostView from '@/components/SlidingPostView';
+import * as Location from 'expo-location';
 
 export default function MapViewPosts({ userId }: { userId: string }) {
   const [posts, setPosts] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
   const [error, setError] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 25.033964,
+    longitude: 121.564468,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
 
   useEffect(() => {
     fetchPosts();
+    requestLocationPermission();
   }, []);
+
+  const requestLocationPermission = async () => {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permission Denied',
+        'Permission to access location was denied. The map will show a default location.'
+      );
+      return;
+    }
+
+    let location = await Location.getCurrentPositionAsync({});
+    setUserLocation(location);
+    setMapRegion({
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+      latitudeDelta: 0.0922,
+      longitudeDelta: 0.0421,
+    });
+  };
 
   const fetchPosts = async () => {
     try {
@@ -84,14 +112,6 @@ export default function MapViewPosts({ userId }: { userId: string }) {
     return view.getFloat64(0, true);
   };
 
-  const closeModal = () => {
-    setModalVisible(false);
-    setSelectedPost(null);
-  };
-
-  if (error) {
-    return <Text style={styles.errorText}>{error}</Text>;
-  }
 
   const handleMarkerPress = (post) => {
     setSelectedPost(post);
@@ -108,14 +128,10 @@ export default function MapViewPosts({ userId }: { userId: string }) {
   return (
     <View style={styles.container}>
       <MapView
-        // provider={PROVIDER_GOOGLE}
         style={styles.map}
-        initialRegion={{
-          latitude: 25.033964,
-          longitude: 121.564468,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        }}
+        region={mapRegion}
+        showsUserLocation={true}
+        showsMyLocationButton={true}
       >
         {posts.map((post) => (
           post.coordinates && (
@@ -136,7 +152,6 @@ export default function MapViewPosts({ userId }: { userId: string }) {
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
