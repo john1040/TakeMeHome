@@ -35,6 +35,7 @@ export default function PostFeed() {
     isRefetching
   } = useInfiniteQuery({
     queryKey: ['posts'],
+    initialPageParam: 0,
     queryFn: async ({ pageParam = 0 }) => {
       const { data, error } = await supabase
         .from('post')
