@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, TextInput, Animated, Dimensions, PanResponder, Alert } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity, TextInput, Animated, Dimensions, PanResponder, Alert, ActivityIndicator } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { Heart, Send, X, Trash2 } from 'lucide-react-native';
 import PagerView from 'react-native-pager-view';
@@ -8,6 +8,65 @@ import { FlashList } from "@shopify/flash-list";
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH / 3;
+
+const PaginationDot = ({ active }) => (
+  <View
+    style={[
+      styles.paginationDot,
+      active && styles.paginationDotActive,
+    ]}
+  />
+);
+
+const PaginationDots = ({ total, currentIndex }) => (
+  <View style={styles.paginationContainer}>
+    {Array.from({ length: total }).map((_, index) => (
+      <PaginationDot key={index} active={index === currentIndex} />
+    ))}
+  </View>
+);
+
+const ImageWithLoading = ({ uri, style }) => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const onLoad = useCallback(() => {
+    setLoading(false);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
+
+  const onError = useCallback(() => {
+    setLoading(false);
+    setError(true);
+  }, []);
+
+  return (
+    <View style={[style, styles.imageWrapper]}>
+      {loading && (
+        <View style={[style, styles.loadingContainer]}>
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
+      )}
+      {error ? (
+        <View style={[style, styles.errorContainer]}>
+          <Text style={styles.errorText}>Failed to load image</Text>
+        </View>
+      ) : (
+        <Animated.Image
+          source={{ uri }}
+          style={[style, { opacity: fadeAnim }]}
+          onLoad={onLoad}
+          onError={onError}
+        />
+      )}
+    </View>
+  );
+};
 
 export default function PostItem({ post, userId, showDelete, onDelete }) {
   const [isLiked, setIsLiked] = useState(false);
@@ -224,29 +283,26 @@ export default function PostItem({ post, userId, showDelete, onDelete }) {
       <Text style={styles.username}>{post?.profiles?.username}</Text>
       <Text style={styles.description}>{post.description}</Text>
       {images.length > 0 && (
-        <PagerView
-          style={styles.pagerView}
-          initialPage={0}
-          onPageSelected={onPageSelected}
-        >
-          {images.map((uri, index) => (
-            <View key={index} style={styles.page}>
-              <Image source={{ uri }} style={styles.image} />
-            </View>
-          ))}
-        </PagerView>
+        <View>
+          <PagerView
+            style={styles.pagerView}
+            initialPage={0}
+            onPageSelected={onPageSelected}
+          >
+            {images.map((imageUrl, index) => (
+              <View key={index} style={styles.imageContainer}>
+                <ImageWithLoading
+                  uri={imageUrl}
+                  style={styles.image}
+                />
+              </View>
+            ))}
+          </PagerView>
+          {images.length > 1 && (
+            <PaginationDots total={images.length} currentIndex={currentPage} />
+          )}
+        </View>
       )}
-      <View style={styles.pagination}>
-        {images.length > 1 && images.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.paginationDot,
-              currentPage === index && styles.paginationDotActive,
-            ]}
-          />
-        ))}
-      </View>
       <Text style={styles.location}>{post.street_name}</Text>
       <Text style={styles.date}>{new Date(post.created_at).toLocaleString()}</Text>
       <View style={styles.actionContainer}>
@@ -336,14 +392,9 @@ export default function PostItem({ post, userId, showDelete, onDelete }) {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginBottom: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
   },
   description: {
     fontSize: 16,
@@ -351,17 +402,53 @@ const styles = StyleSheet.create({
   },
   pagerView: {
     width: '100%',
-    height: 200,
-    marginBottom: 8,
+    height: 300,
   },
-  page: {
+  imageContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   image: {
     width: '100%',
     height: '100%',
-    borderRadius: 8,
+  },
+  imageWrapper: {
+    backgroundColor: '#f0f0f0',
+  },
+  loadingContainer: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  errorContainer: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  errorText: {
+    color: '#666',
+    fontSize: 14,
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    position: 'absolute',
+    bottom: 16,
+    alignSelf: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    marginHorizontal: 4,
+  },
+  paginationDotActive: {
+    backgroundColor: 'white',
   },
   location: {
     fontSize: 14,
@@ -383,22 +470,6 @@ const styles = StyleSheet.create({
   },
   touchable: {
     padding: 10,
-  },
-  pagination: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  paginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ccc',
-    marginHorizontal: 4,
-  },
-  paginationDotActive: {
-    backgroundColor: '#000',
   },
   commentsSection: {
     marginTop: 16,

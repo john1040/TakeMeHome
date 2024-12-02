@@ -11,7 +11,7 @@ import { Alert } from 'react-native';
 
 export default function TabTwoScreen() {
   const { userProfile, isLoading } = useAuth();
-
+  console.log(userProfile)
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.replace('/');

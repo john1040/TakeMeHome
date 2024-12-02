@@ -1,10 +1,11 @@
-import React from 'react';
-import { View, Text, Image, FlatList, StyleSheet, Button, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, FlatList, StyleSheet, Button, Alert, ActivityIndicator, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { useQueryClient } from '@tanstack/react-query';
 
 const supabaseUrl = 'https://nkkaxelmylemiesxvmoz.supabase.co';
 
@@ -12,6 +13,9 @@ export default function ReviewSubmit() {
   const { images, description, latitude, longitude, streetName } = useLocalSearchParams();
   const { session } = useAuth();
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const queryClient = useQueryClient();
 
   const parsedImages = JSON.parse(images as string);
 
@@ -20,6 +24,9 @@ export default function ReviewSubmit() {
       Alert.alert('Error', 'You must be logged in to create a post');
       return;
     }
+
+    setIsSubmitting(true);
+    setProgress({ current: 0, total: parsedImages.length });
 
     try {
       console.log('Starting image upload process...');
@@ -53,12 +60,15 @@ export default function ReviewSubmit() {
 
           if (imageError) throw imageError;
 
+          setProgress(prev => ({ ...prev, current: prev.current + 1 }));
           return `${supabaseUrl}/storage/v1/object/public/post-images/${imageData.path}`;
         } catch (error) {
           console.error(`Error processing image ${index + 1}:`, error);
           throw error;
         }
       }));
+
+      setProgress(prev => ({ ...prev, current: prev.total }));
 
       const { data, error } = await supabase
         .from('post')
@@ -88,14 +98,25 @@ export default function ReviewSubmit() {
         {
           text: 'OK',
           onPress: () => {
-            router.replace('/(tabs)/create-post');
+            // Invalidate and refetch posts query
+            queryClient.invalidateQueries({ queryKey: ['posts'] });
+            
+            // Reset the entire navigation state to clear the create post stack
             router.replace('/(tabs)');
+            
+            // Reset the create post stack after a short delay to ensure proper navigation
+            setTimeout(() => {
+              router.replace('/(tabs)/create-post');
+            }, 100);
           }
         }
       ]);
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       Alert.alert('Error', `Failed to create post. ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+      setProgress({ current: 0, total: 0 });
     }
   };
 
@@ -118,7 +139,29 @@ export default function ReviewSubmit() {
       />
       <Text style={styles.previewText}>{description}</Text>
       <Text style={styles.previewText}>{streetName}</Text>
-      <Button title="Submit" onPress={handleSubmit} />
+      <Button 
+        title={isSubmitting ? "Submitting..." : "Submit"} 
+        onPress={handleSubmit}
+        disabled={isSubmitting}
+      />
+
+      <Modal
+        transparent={true}
+        visible={isSubmitting}
+        animationType="fade"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <ActivityIndicator size="large" color="#0000ff" />
+            <Text style={styles.loadingText}>Creating your post...</Text>
+            {progress.total > 0 && (
+              <Text style={styles.progressText}>
+                Uploading images: {progress.current}/{progress.total}
+              </Text>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -135,5 +178,35 @@ const styles = StyleSheet.create({
   },
   previewText: {
     marginVertical: 10,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  progressText: {
+    marginTop: 5,
+    fontSize: 14,
+    color: '#666',
   },
 });

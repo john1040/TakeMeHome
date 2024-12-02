@@ -94,6 +94,7 @@ export default function PhoneVerification() {
       });
 
       if (!response.ok) {
+        console.log(response)
         throw new Error('Failed to send SMS');
       }
 
