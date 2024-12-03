@@ -49,7 +49,7 @@ const ImageWithLoading = ({ uri, style }) => {
     <View style={[style, styles.imageWrapper]}>
       {loading && (
         <View style={[style, styles.loadingContainer]}>
-          <ActivityIndicator size="large" color="#0000ff" />
+          <ActivityIndicator size="small" color="#666" />
         </View>
       )}
       {error ? (
@@ -58,10 +58,15 @@ const ImageWithLoading = ({ uri, style }) => {
         </View>
       ) : (
         <Animated.Image
-          source={{ uri }}
+          source={{ 
+            uri,
+            cache: 'force-cache',
+            priority: 'high',
+          }}
           style={[style, { opacity: fadeAnim }]}
           onLoad={onLoad}
           onError={onError}
+          loading="eager"
         />
       )}
     </View>

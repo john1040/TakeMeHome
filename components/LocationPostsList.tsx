@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { FlashList } from "@shopify/flash-list";
 
@@ -12,26 +12,38 @@ interface LocationPostsListProps {
   onClose: () => void;
 }
 
+const PostCard = memo(({ item, onPress }) => (
+  <TouchableOpacity 
+    style={styles.postCard}
+    onPress={onPress}
+  >
+    <Image 
+      source={{ 
+        uri: Array.isArray(item.image) ? item.image[0]?.url : item.image?.url,
+        cache: 'force-cache',
+        priority: 'high',
+      }}
+      style={styles.thumbnail}
+      resizeMode="cover"
+      loading="eager"
+    />
+    <View style={styles.postInfo}>
+      <Text style={styles.description} numberOfLines={2}>
+        {item.description}
+      </Text>
+      <Text style={styles.date}>
+        {new Date(item.created_at).toLocaleDateString()}
+      </Text>
+    </View>
+  </TouchableOpacity>
+));
+
 const LocationPostsList: React.FC<LocationPostsListProps> = ({ posts, onPostSelect, onClose }) => {
   const renderItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.postCard}
+    <PostCard 
+      item={item} 
       onPress={() => onPostSelect(item)}
-    >
-      <Image 
-        source={{ uri: Array.isArray(item.image) ? item.image[0]?.url : item.image?.url }} 
-        style={styles.thumbnail}
-        resizeMode="cover"
-      />
-      <View style={styles.postInfo}>
-        <Text style={styles.description} numberOfLines={2}>
-          {item.description}
-        </Text>
-        <Text style={styles.date}>
-          {new Date(item.created_at).toLocaleDateString()}
-        </Text>
-      </View>
-    </TouchableOpacity>
+    />
   );
 
   return (
@@ -50,6 +62,9 @@ const LocationPostsList: React.FC<LocationPostsListProps> = ({ posts, onPostSele
             estimatedItemSize={80}
             showsVerticalScrollIndicator={true}
             contentContainerStyle={styles.listContent}
+            initialNumToRender={5}
+            maxToRenderPerBatch={5}
+            windowSize={3}
           />
         </View>
       </View>

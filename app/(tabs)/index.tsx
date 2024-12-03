@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, FlatList, ActivityIndicator, StyleSheet, RefreshControl, Text, Platform } from 'react-native';
+import { View, FlatList, ActivityIndicator, StyleSheet, RefreshControl, Text, Platform, Image } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import PostItem from '@/components/PostItem';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
@@ -93,7 +93,11 @@ export default function PostFeed() {
     return (
       <SafeAreaView style={[styles.container, styles.centered]} edges={['top']}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>TakeMeHome</Text>
+          <Image 
+            source={require('@/assets/images/TMH_Logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
         <ActivityIndicator size="large" />
       </SafeAreaView>
@@ -103,7 +107,11 @@ export default function PostFeed() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>TakeMeHome</Text>
+        <Image 
+          source={require('@/assets/images/TMH_Logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
       </View>
       <FlatList
         data={posts}
@@ -130,30 +138,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  header: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#000',
-  },
-  loaderContainer: {
-    marginVertical: 16,
-    alignItems: 'center',
-  },
   centered: {
     justifyContent: 'center',
     alignItems: 'center',
   },
+  header: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    alignItems: 'center',
+  },
+  logo: {
+    width: 150,
+    height: 40,
+  },
   listContent: {
-    paddingBottom: 20,
+    paddingHorizontal: 15,
+  },
+  loaderContainer: {
+    paddingVertical: 20,
   },
 });
