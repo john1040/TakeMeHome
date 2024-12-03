@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { View, StyleSheet, Animated, PanResponder, Dimensions, TouchableWithoutFeedback } from 'react-native';
+import { View, StyleSheet, Animated, PanResponder, Dimensions, TouchableWithoutFeedback, ScrollView } from 'react-native';
 import PostItem from '@/components/PostItem';
 
 const { height } = Dimensions.get('window');
@@ -88,7 +88,9 @@ const SlidingPostView: React.FC<SlidingPostViewProps> = ({ post, userId, onClose
           <TouchableWithoutFeedback>
             <View style={styles.content}>
               <View style={styles.handle} />
-              <PostItem post={post} userId={userId} />
+              <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+                <PostItem post={post} userId={userId} />
+              </ScrollView>
             </View>
           </TouchableWithoutFeedback>
         </Animated.View>
@@ -111,7 +113,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: height * 0.5,
+    height: height * 0.85,
     backgroundColor: 'white',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -122,7 +124,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   content: {
-    padding: 20,
+    padding: 15,
     flex: 1,
   },
   handle: {
@@ -131,7 +133,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ccc',
     borderRadius: 3,
     alignSelf: 'center',
-    marginBottom: 10,
+    marginBottom: 15,
   },
 });
 

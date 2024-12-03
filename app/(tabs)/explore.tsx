@@ -3,11 +3,13 @@ import { View, StyleSheet, Text, Alert } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { supabase } from '@/lib/supabase';
 import SlidingPostView from '@/components/SlidingPostView';
+import LocationPostsList from '@/components/LocationPostsList';
 import * as Location from 'expo-location';
 
 export default function MapViewPosts({ userId }: { userId: string }) {
   const [posts, setPosts] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
   const [error, setError] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
   const [mapRegion, setMapRegion] = useState({
@@ -59,14 +61,29 @@ export default function MapViewPosts({ userId }: { userId: string }) {
         ...post,
         coordinates: parseEWKBString(post.geolocation)
       }));
-      setPosts(postsWithCoords);
+
+      // Group posts by location
+      const groupedPosts = postsWithCoords.reduce((acc, post) => {
+        if (!post.coordinates) return acc;
+        
+        const key = `${post.coordinates.latitude.toFixed(5)},${post.coordinates.longitude.toFixed(5)}`;
+        if (!acc[key]) {
+          acc[key] = {
+            coordinates: post.coordinates,
+            posts: []
+          };
+        }
+        acc[key].posts.push(post);
+        return acc;
+      }, {});
+
+      setPosts(Object.values(groupedPosts));
     } catch (error) {
       console.error('Error fetching posts:', error);
       setError('Failed to load posts. Please try again later.');
     }
   };
 
-  
   const parseEWKBString = (ewkb) => {
     if (!ewkb) {
       console.warn('Geolocation data is missing for a post');
@@ -112,9 +129,17 @@ export default function MapViewPosts({ userId }: { userId: string }) {
     return view.getFloat64(0, true);
   };
 
+  const handleMarkerPress = (locationData) => {
+    setSelectedLocation(locationData);
+  };
 
-  const handleMarkerPress = (post) => {
+  const handlePostSelect = (post) => {
     setSelectedPost(post);
+    setSelectedLocation(null);
+  };
+
+  const handleCloseLocationList = () => {
+    setSelectedLocation(null);
   };
 
   const handleCloseSlider = () => {
@@ -133,16 +158,24 @@ export default function MapViewPosts({ userId }: { userId: string }) {
         showsUserLocation={true}
         showsMyLocationButton={true}
       >
-        {posts.map((post) => (
-          post.coordinates && (
+        {posts.map((locationData, index) => (
+          locationData.coordinates && (
             <Marker
-              key={post.id}
-              coordinate={post.coordinates}
-              onPress={() => handleMarkerPress(post)}
+              key={index}
+              coordinate={locationData.coordinates}
+              onPress={() => handleMarkerPress(locationData)}
             />
           )
         ))}
       </MapView>
+
+      {selectedLocation && (
+        <LocationPostsList
+          posts={selectedLocation.posts}
+          onPostSelect={handlePostSelect}
+          onClose={handleCloseLocationList}
+        />
+      )}
 
       <SlidingPostView
         post={selectedPost}
@@ -162,9 +195,10 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   errorText: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
     color: 'red',
-    fontSize: 16,
-    textAlign: 'center',
-    margin: 20,
   },
 });
