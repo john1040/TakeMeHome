@@ -1,4 +1,4 @@
-import { View, StyleSheet, ActivityIndicator, Animated } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Animated, Image } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useEffect, useRef } from 'react';
 import Auth from '@/components/Auth';
@@ -30,14 +30,18 @@ export default function App() {
 
   const backgroundColorInterpolation = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: ['#ff9a9e', '#fad0c4'],  // From pink to light pink, for example
+    outputRange: ['#F5F5F5', '#FFFFFF'],  // Subtle light gray to white transition
   });
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" />
-        <ThemedText style={styles.loadingText}>Loading...</ThemedText>
+        <Image 
+          source={require('@/assets/images/TMH_Logo.png')}
+          style={styles.logoSmall}
+          resizeMode="contain"
+        />
+        <ActivityIndicator size="large" color="#666" />
       </View>
     );
   }
@@ -53,13 +57,17 @@ export default function App() {
   return (
     <Animated.View style={[styles.outer, { backgroundColor: backgroundColorInterpolation }]}>
       <LinearGradient
-        colors={['#ff9a9e', '#fad0c4']}
+        colors={['#F5F5F5', '#FFFFFF']}
         style={styles.gradientBackground}
       >
-        <View style={styles.container}>
-          <ThemedText type="title">Take Me Home 🏡</ThemedText>
+        <View style={styles.logoContainer}>
+          <Image 
+            source={require('@/assets/images/TMH_Logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
-        <View style={styles.container}>
+        <View style={styles.authContainer}>
           <Auth />
         </View>
       </LinearGradient>
@@ -76,22 +84,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  container: {
-    marginBottom: 50,
-    marginTop: 50,
-    padding: 12,
+  logoContainer: {
     flex: 1,
-    flexDirection: 'column',
     justifyContent: 'flex-end',
     alignItems: 'center',
+    paddingBottom: 50,
+  },
+  authContainer: {
+    flex: 1,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingTop: 50,
+    width: '100%',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
   },
-  loadingText: {
-    marginTop: 10,
+  logo: {
+    width: 200,
+    height: 80,
+  },
+  logoSmall: {
+    width: 150,
+    height: 60,
+    marginBottom: 20,
   },
   errorText: {
     color: 'red',
