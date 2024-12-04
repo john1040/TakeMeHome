@@ -8,13 +8,28 @@ import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import ThemedButton from '@/components/ThemeButton';
 import { Alert } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function TabTwoScreen() {
   const { userProfile, isLoading } = useAuth();
-  console.log(userProfile)
+  const queryClient = useQueryClient();
+
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.replace('/');
+    try {
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+
+      // Clear React Query cache
+      await queryClient.invalidateQueries({ queryKey: ['sessionAndProfile'] });
+      queryClient.clear();
+
+      // Navigate to auth screen
+      router.replace('/(auth)');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      Alert.alert('Error', 'Failed to sign out. Please try again.');
+    }
   };
 
   const handleDeleteAccount = () => {
