@@ -1,18 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, StyleSheet, Text, Modal, SafeAreaView } from 'react-native';
+import { View, TextInput, StyleSheet, Text, Modal, SafeAreaView, Image, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
 import * as Location from 'expo-location';
 import MapView, { Marker } from 'react-native-maps';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AntDesign } from '@expo/vector-icons';
-import ThemedButton from '@/components/ThemeButton';  // Adjust the import path as necessary
+import ThemedButton from '@/components/ThemeButton';
+
+const CATEGORIES = ['desks', 'chairs', 'others'] as const;
+type Category = typeof CATEGORIES[number];
+
+const { width } = Dimensions.get('window');
+const PREVIEW_SIZE = width / 4 - 10;
 
 export default function DescriptionLocation() {
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState(null);
   const [streetName, setStreetName] = useState('');
   const [showMap, setShowMap] = useState(false);
+  const [category, setCategory] = useState<Category>('others');
   const { images } = useLocalSearchParams();
   const router = useRouter();
+  const imageUris = JSON.parse(images as string);
 
   useEffect(() => {
     (async () => {
@@ -57,14 +65,54 @@ export default function DescriptionLocation() {
         description,
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
-        streetName
+        streetName,
+        category
       }
     });
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.contentContainer}>
+      <ScrollView style={styles.contentContainer}>
+        {/* Image Preview Section */}
+        <View style={styles.imagePreviewContainer}>
+          <Text style={styles.sectionTitle}>Selected Images</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageScroll}>
+            {imageUris.map((uri, index) => (
+              <View key={index} style={styles.imagePreview}>
+                <Image source={{ uri }} style={styles.previewImage} />
+                <View style={styles.imageOrder}>
+                  <Text style={styles.imageOrderText}>{index + 1}</Text>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Category Selection */}
+        <Text style={styles.sectionTitle}>Item Category</Text>
+        <View style={styles.categoryContainer}>
+          {CATEGORIES.map((cat) => (
+            <TouchableOpacity
+              key={cat}
+              style={[
+                styles.categoryButton,
+                category === cat && styles.categoryButtonSelected
+              ]}
+              onPress={() => setCategory(cat)}
+            >
+              <Text style={[
+                styles.categoryButtonText,
+                category === cat && styles.categoryButtonTextSelected
+              ]}>
+                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Description Input */}
+        <Text style={styles.sectionTitle}>Description</Text>
         <TextInput
           style={styles.input}
           value={description}
@@ -72,14 +120,18 @@ export default function DescriptionLocation() {
           placeholder="What's on your mind?"
           multiline
         />
+
+        {/* Location Selection */}
+        <Text style={styles.sectionTitle}>Location</Text>
         <ThemedButton
           title="Select Location"
           onPress={() => setShowMap(true)}
           type="secondary"
           size="medium"
+          style={styles.locationButton}
         />
         {streetName && <Text style={styles.locationText}>{streetName}</Text>}
-      </View>
+      </ScrollView>
 
       <ThemedButton
         onPress={handleNext}
@@ -128,20 +180,93 @@ export default function DescriptionLocation() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
   },
   contentContainer: {
     flex: 1,
     padding: 20,
   },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+    color: '#333',
+  },
+  imagePreviewContainer: {
+    marginBottom: 20,
+  },
+  imageScroll: {
+    flexGrow: 0,
+  },
+  imagePreview: {
+    width: PREVIEW_SIZE,
+    height: PREVIEW_SIZE,
+    marginRight: 10,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  imageOrder: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageOrderText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  categoryContainer: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    gap: 10,
+  },
+  categoryButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+  },
+  categoryButtonSelected: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  categoryButtonText: {
+    color: '#333',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  categoryButtonTextSelected: {
+    color: '#fff',
+  },
   input: {
     height: 100,
-    borderColor: 'gray',
+    borderColor: '#ddd',
     borderWidth: 1,
+    borderRadius: 8,
     marginBottom: 20,
     padding: 10,
+    textAlignVertical: 'top',
+  },
+  locationButton: {
+    marginBottom: 10,
   },
   locationText: {
     marginVertical: 10,
+    color: '#666',
   },
   mapContainer: {
     flex: 1,
@@ -154,18 +279,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     right: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: 'white',
     borderColor: 'black',
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 0,
   },
   closeMapButton: {
     position: 'absolute',
     bottom: 20,
-    alignSelf: 'center',
+    left: 20,
   },
 });

@@ -285,7 +285,19 @@ export default function PostItem({ post, userId, showDelete, onDelete }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.username}>{post?.profiles?.username}</Text>
+      <View style={styles.header}>
+        <View style={styles.userInfo}>
+          <Text style={styles.username}>{post.profiles?.username}</Text>
+          <Text style={styles.location}>{post.street_name}</Text>
+        </View>
+        {post.category && (
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryText}>
+              {post.category.charAt(0).toUpperCase() + post.category.slice(1)}
+            </Text>
+          </View>
+        )}
+      </View>
       <Text style={styles.description}>{post.description}</Text>
       {images.length > 0 && (
         <View>
@@ -308,7 +320,6 @@ export default function PostItem({ post, userId, showDelete, onDelete }) {
           )}
         </View>
       )}
-      <Text style={styles.location}>{post.street_name}</Text>
       <Text style={styles.date}>{new Date(post.created_at).toLocaleString()}</Text>
       <View style={styles.actionContainer}>
         <View style={styles.likeContainer}>
@@ -550,5 +561,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 8,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  userInfo: {
+    flex: 1,
+  },
+  categoryBadge: {
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  categoryText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
   },
 });

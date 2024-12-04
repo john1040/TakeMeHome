@@ -56,6 +56,7 @@ export default function PostFeed() {
       return {
         posts: data.map(post => ({
           ...post,
+          category: post.category,
           username: post.profiles.username
         })),
         nextPage: data.length === POSTS_PER_PAGE ? pageParam + 1 : undefined,
