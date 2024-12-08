@@ -187,10 +187,40 @@ export default function ReviewSubmit() {
 
   const convertToLocalUri = async (uri: string): Promise<string> => {
     // If it's already a file URI, return it
-    if (uri.startsWith('file://')) return uri;
+    if (uri.startsWith('file://')) {
+      const fileInfo = await FileSystem.getInfoAsync(uri);
+      
+      // Check file size (5MB limit)
+      if (fileInfo.size > 5 * 1024 * 1024) {
+        throw new Error('Image size exceeds 5MB limit. Please choose a smaller image.');
+      }
+    }
 
     // For asset-library URIs or other types, we'll use ImageManipulator to create a local copy
-    const manipulateResult = await ImageManipulator.manipulateAsync(uri, [], { format: 'png' });
+    const manipulateResult = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: 1080 } }], // Resize to max width of 1080px while maintaining aspect ratio
+      { 
+        compress: 0.8, // 80% quality
+        format: 'jpeg'
+      }
+    );
+
+    // Verify the compressed size
+    const compressedFileInfo = await FileSystem.getInfoAsync(manipulateResult.uri);
+    if (compressedFileInfo.size > 5 * 1024 * 1024) {
+      // If still too large, compress further
+      const furtherCompressedResult = await ImageManipulator.manipulateAsync(
+        manipulateResult.uri,
+        [],
+        { 
+          compress: 0.5, // 50% quality
+          format: 'jpeg'
+        }
+      );
+      return furtherCompressedResult.uri;
+    }
+
     return manipulateResult.uri;
   };
 
