@@ -166,12 +166,12 @@ export default function ReviewSubmit() {
             // Invalidate and refetch posts query
             queryClient.invalidateQueries({ queryKey: ['posts'] });
             
-            // Reset the entire navigation state to clear the create post stack
+            // Reset to the root tab navigator first
             router.replace('/(tabs)');
             
-            // Reset the create post stack after a short delay to ensure proper navigation
+            // Then reset the create post stack to its initial state
             setTimeout(() => {
-              router.replace('/(tabs)/create-post');
+              router.replace('/(tabs)/create-post/image-selection');
             }, 100);
           }
         }
