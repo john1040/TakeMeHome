@@ -1,15 +1,34 @@
-import React, { useState, useCallback, useRef } from 'react';
-import { View, FlatList, ActivityIndicator, StyleSheet, RefreshControl, Text, Platform, Image } from 'react-native';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { View, FlatList, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import PostItem from '@/components/PostItem';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useNavigation } from 'expo-router';
+import { TouchableOpacity } from 'react-native';
+import { MessageCircle } from 'lucide-react-native';
 
 const POSTS_PER_PAGE = 3;
 
 export default function PostFeed() {
   const [userId, setUserId] = useState(null);
   const onEndReachedCalledDuringMomentum = useRef(true);
+  const router = useRouter();
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    // Set the header right button
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity 
+          onPress={() => router.push('/(app)/chats')}
+          style={styles.chatButton}
+        >
+          <MessageCircle size={24} color="#000" />
+        </TouchableOpacity>
+      ),
+    });
+  }, []);
 
   // Query for user ID
   const { data: userData } = useQuery({
@@ -82,55 +101,35 @@ export default function PostFeed() {
   const handleLoadMore = () => {
     if (!onEndReachedCalledDuringMomentum.current && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
-      onEndReachedCalledDuringMomentum.current = true;
     }
-  };
-
-  const handleRefresh = () => {
-    refetch();
   };
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.container, styles.centered]} edges={['top']}>
-        <View style={styles.header}>
-          <Image 
-            source={require('@/assets/images/TMH_Logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </View>
+      <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" />
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <Image 
-          source={require('@/assets/images/TMH_Logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-      </View>
+    <View style={styles.container}>
       <FlatList
         data={posts}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.id}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}
-        onMomentumScrollBegin={() => { onEndReachedCalledDuringMomentum.current = false }}
+        onMomentumScrollBegin={() => { onEndReachedCalledDuringMomentum.current = false; }}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
-            onRefresh={handleRefresh}
+            onRefresh={refetch}
           />
         }
-        contentContainerStyle={styles.listContent}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -139,24 +138,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  centered: {
+  loaderContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  header: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    alignItems: 'center',
-  },
-  logo: {
-    width: 150,
-    height: 40,
-  },
-  listContent: {
-    paddingHorizontal: 15,
-  },
-  loaderContainer: {
-    paddingVertical: 20,
+  chatButton: {
+    marginRight: 16,
+    padding: 4,
   },
 });

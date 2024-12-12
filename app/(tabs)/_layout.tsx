@@ -1,17 +1,36 @@
 import React from 'react';
 import { Tabs, useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useColorScheme, Image } from 'react-native';
 
 export default function TabLayout() {
   const router = useRouter();
   const pathname = usePathname();
+  const colorScheme = useColorScheme();
 
   return (
-    <Tabs screenOptions={{ headerShown: false }}>
+    <Tabs
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: colorScheme === 'dark' ? '#000' : '#fff',
+        },
+        headerTintColor: colorScheme === 'dark' ? '#fff' : '#000',
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+        headerLeftLabelVisible: false,
+        headerTitle: () => (
+          <Image
+            source={require('@/assets/images/TMH_Logo.png')}
+            style={{ width: 100, height: 40 }}
+            resizeMode="contain"
+          />
+        ),
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
           tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
         }}
       />

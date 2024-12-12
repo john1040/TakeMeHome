@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, TextInput, Animated, Dimensions, PanResponder, Alert, ActivityIndicator } from 'react-native';
 import { supabase } from '@/lib/supabase';
-import { Heart, Send, X, Trash2 } from 'lucide-react-native';
+import { Heart, Send, X, Trash2, MessageCircle } from 'lucide-react-native';
 import PagerView from 'react-native-pager-view';
 import { useAuth } from '@/hooks/useAuth';
 import { FlashList } from "@shopify/flash-list";
+import { useRouter } from 'expo-router';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH / 3;
@@ -74,6 +75,7 @@ const ImageWithLoading = ({ uri, style }) => {
 };
 
 export default function PostItem({ post, userId, showDelete, onDelete }) {
+  const router = useRouter();
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [images, setImages] = useState([]);
@@ -283,6 +285,21 @@ export default function PostItem({ post, userId, showDelete, onDelete }) {
     );
   };
 
+  const handleStartChat = () => {
+    if (post.user_id === userId) {
+      Alert.alert('Info', 'This is your own post');
+      return;
+    }
+    
+    router.push({
+      pathname: '/(app)/chat',
+      params: {
+        recipientId: post.user_id,
+        recipientUsername: post.profiles?.username
+      }
+    });
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -322,18 +339,23 @@ export default function PostItem({ post, userId, showDelete, onDelete }) {
       )}
       <Text style={styles.date}>{new Date(post.created_at).toLocaleString()}</Text>
       <View style={styles.actionContainer}>
-        <View style={styles.likeContainer}>
-          <TouchableOpacity
-            onPress={handleLikeUnlike}
-            style={styles.touchable}
-          >
-            <Heart
-              size={24}
-              color={isLiked ? '#e31b23' : '#000'}
-              fill={isLiked ? '#e31b23' : 'none'}
-            />
+        <View style={styles.actionButtons}>
+          <View style={styles.likeContainer}>
+            <TouchableOpacity
+              onPress={handleLikeUnlike}
+              style={styles.touchable}
+            >
+              <Heart
+                size={24}
+                color={isLiked ? '#e31b23' : '#000'}
+                fill={isLiked ? '#e31b23' : 'none'}
+              />
+            </TouchableOpacity>
+            <Text style={styles.likeCount}>{likeCount} likes</Text>
+          </View>
+          <TouchableOpacity onPress={handleStartChat} style={styles.chatButton}>
+            <MessageCircle size={24} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.likeCount}>{likeCount} likes</Text>
         </View>
         {showDelete && post.user_id === userId && (
           <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
@@ -584,5 +606,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     fontWeight: '500',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chatButton: {
+    marginLeft: 16,
+    padding: 4,
   },
 });
