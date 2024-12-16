@@ -133,6 +133,17 @@ export default function DescriptionLocation() {
         {streetName && <Text style={styles.locationText}>{streetName}</Text>}
       </ScrollView>
 
+      {/* Back Button */}
+      <ThemedButton
+        onPress={() => router.back()}
+        type="default"
+        size="large"
+        style={styles.backButton}
+      >
+        <AntDesign name="arrowleft" size={24} color="black" />
+      </ThemedButton>
+
+      {/* Next Button */}
       <ThemedButton
         onPress={handleNext}
         type="default"
@@ -293,5 +304,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     left: 20,
+  },
+  backButton: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'white',
+    borderColor: 'black',
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 0,
   },
 });
