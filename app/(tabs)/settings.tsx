@@ -1,31 +1,22 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { StyleSheet, Modal, TouchableOpacity, View } from 'react-native';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import ThemedButton from '@/components/ThemeButton';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
-import ThemedButton from '@/components/ThemeButton';
 import { Alert } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
 
-export default function TabTwoScreen() {
-  const { userProfile, isLoading } = useAuth();
+export default function SettingsScreen() {
+  const { userProfile } = useAuth();
   const queryClient = useQueryClient();
-  const [isSettingsVisible, setIsSettingsVisible] = useState(false);
 
   const handleSignOut = async () => {
     try {
-      // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-
-      // Clear React Query cache
       await queryClient.invalidateQueries({ queryKey: ['sessionAndProfile'] });
       queryClient.clear();
-
-      // Navigate to auth screen
       router.replace('/(auth)');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -38,10 +29,7 @@ export default function TabTwoScreen() {
       "Delete Account",
       "Are you sure you want to delete your account? This action cannot be undone.",
       [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
@@ -55,11 +43,7 @@ export default function TabTwoScreen() {
               const { error: deleteError } = await supabase.auth.admin.deleteUser(
                 userProfile?.id as string
               );
-              
-              if (deleteError) {
-                console.log(deleteError);
-                throw deleteError;
-              }
+              if (deleteError) throw deleteError;
               await supabase.auth.signOut();
               router.replace('/');
             } catch (error) {
@@ -72,23 +56,10 @@ export default function TabTwoScreen() {
     );
   };
 
-  const handleNavigateToMyPosts = () => {
-    router.push('/my-posts');
-  };
-
-  const handleNavigateToSettings = () => {
-    router.push('/settings');
-  };
-
   return (
     <View style={styles.container}>
-      <View style={styles.titleContainer}>
-        <ThemedText type="title">我的帳號 {userProfile?.username}</ThemedText>
-        <TouchableOpacity onPress={handleNavigateToSettings}>
-          <Ionicons name="settings-outline" size={24} color="black" />
-        </TouchableOpacity>
-      </View>
-      <ThemedButton type='default' onPress={handleNavigateToMyPosts} title='我的貼文' />
+      <ThemedButton type='default' onPress={handleSignOut} title='登出' />
+      <ThemedButton type='danger' onPress={handleDeleteAccount} title='刪除帳號' />
     </View>
   );
 }
@@ -96,18 +67,9 @@ export default function TabTwoScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap:16,
     padding: 16,
   },
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-});
+}); 
