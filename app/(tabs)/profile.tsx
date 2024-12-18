@@ -1,5 +1,6 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, View, FlatList, TouchableOpacity, Image, Text } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { StyleSheet, Modal, TouchableOpacity, View } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,88 +8,59 @@ import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import ThemedButton from '@/components/ThemeButton';
 import { Alert } from 'react-native';
-import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
 
 export default function TabTwoScreen() {
-  const { userProfile, isLoading } = useAuth();
-  const queryClient = useQueryClient();
-  const [isSettingsVisible, setIsSettingsVisible] = useState(false);
+  const { userProfile } = useAuth();
+  const [posts, setPosts] = useState<{ id: number; image: { url: string }[] }[]>([]);
 
-  const handleSignOut = async () => {
-    try {
-      // Sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-
-      // Clear React Query cache
-      await queryClient.invalidateQueries({ queryKey: ['sessionAndProfile'] });
-      queryClient.clear();
-
-      // Navigate to auth screen
-      router.replace('/(auth)');
-    } catch (error) {
-      console.error('Error signing out:', error);
-      Alert.alert('Error', 'Failed to sign out. Please try again.');
+  useEffect(() => {
+    if (userProfile?.id) {
+      fetchPosts();
     }
+  }, [userProfile]);
+
+  const fetchPosts = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('post')
+        .select('id, image:image(url)')
+        .eq('user_id', userProfile?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPosts(data);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      Alert.alert('Error', 'Failed to load posts. Please try again.');
+    }
+  }, [userProfile]);
+
+  const handlePostPress = (postId: number) => {
+    console.log('Post Pressed', postId);
+    router.push(`/post-details/${postId}`);
   };
 
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      "Delete Account",
-      "Are you sure you want to delete your account? This action cannot be undone.",
-      [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const { error: profileDeleteError } = await supabase
-                .from('profiles')
-                .delete()
-                .eq('id', userProfile?.id);
-              if (profileDeleteError) throw profileDeleteError;
-              const { error: deleteError } = await supabase.auth.admin.deleteUser(
-                userProfile?.id as string
-              );
-              
-              if (deleteError) {
-                console.log(deleteError);
-                throw deleteError;
-              }
-              await supabase.auth.signOut();
-              router.replace('/');
-            } catch (error) {
-              console.error("Error deleting account:", error);
-              Alert.alert("Error", "Failed to delete account. Please try again.");
-            }
-          }
-        }
-      ]
-    );
-  };
-
-  const handleNavigateToMyPosts = () => {
-    router.push('/my-posts');
-  };
-
-  const handleNavigateToSettings = () => {
-    router.push('/settings');
-  };
+  const renderPostItem = ({ item }: { item: { id: number; image: { url: string }[] } }) => (
+    <TouchableOpacity onPress={() => handlePostPress(item.id)} style={styles.postItem}>
+      <Image source={{ uri: item.image[0].url }} style={styles.postImage} />
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
       <View style={styles.titleContainer}>
         <ThemedText type="title">我的帳號 {userProfile?.username}</ThemedText>
-        <TouchableOpacity onPress={handleNavigateToSettings}>
+        <TouchableOpacity onPress={() => router.push('/settings')}>
           <Ionicons name="settings-outline" size={24} color="black" />
         </TouchableOpacity>
       </View>
-      <ThemedButton type='default' onPress={handleNavigateToMyPosts} title='我的貼文' />
+      <FlatList
+        data={posts}
+        renderItem={renderPostItem}
+        keyExtractor={item => item.id.toString()}
+        numColumns={3}
+        contentContainerStyle={styles.postsContainer}
+      />
     </View>
   );
 }
@@ -98,16 +70,23 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
   titleContainer: {
     flexDirection: 'row',
     gap: 8,
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  postsContainer: {
+    paddingVertical: 16,
+  },
+  postItem: {
+    flex: 1,
+    margin: 4,
+    aspectRatio: 1,
+  },
+  postImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
   },
 });

@@ -6,12 +6,29 @@ import SlidingPostView from '@/components/SlidingPostView';
 import LocationPostsList from '@/components/LocationPostsList';
 import * as Location from 'expo-location';
 
+interface Post {
+  id: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  // add other post properties as needed
+}
+
+interface LocationData {
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  };
+  posts: Post[];
+}
+
 export default function MapViewPosts({ userId }: { userId: string }) {
-  const [posts, setPosts] = useState([]);
-  const [selectedPost, setSelectedPost] = useState(null);
-  const [selectedLocation, setSelectedLocation] = useState(null);
-  const [error, setError] = useState(null);
-  const [userLocation, setUserLocation] = useState(null);
+  const [posts, setPosts] = useState<LocationData[]>([]);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
   const [mapRegion, setMapRegion] = useState({
     latitude: 25.033964,
     longitude: 121.564468,
@@ -84,7 +101,7 @@ export default function MapViewPosts({ userId }: { userId: string }) {
     }
   };
 
-  const parseEWKBString = (ewkb) => {
+  const parseEWKBString = (ewkb: string): { latitude: number; longitude: number; } | null => {
     if (!ewkb) {
       console.warn('Geolocation data is missing for a post');
       return null;
@@ -121,19 +138,18 @@ export default function MapViewPosts({ userId }: { userId: string }) {
     }
   };
 
-  // Helper function to convert IEEE 754 binary64 to double
-  const ieee754ToDouble = (bytes) => {
+  const ieee754ToDouble = (bytes: Uint8Array): number => {
     const buffer = new ArrayBuffer(8);
     const view = new DataView(buffer);
-    bytes.forEach((b, i) => view.setUint8(i, b));
+    bytes.forEach((b: number, i: number) => view.setUint8(i, b));
     return view.getFloat64(0, true);
   };
 
-  const handleMarkerPress = (locationData) => {
+  const handleMarkerPress = (locationData: LocationData): void => {
     setSelectedLocation(locationData);
   };
 
-  const handlePostSelect = (post) => {
+  const handlePostSelect = (post: Post): void => {
     setSelectedPost(post);
     setSelectedLocation(null);
   };
