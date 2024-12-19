@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, Alert } from 'react-native';
+import { View, StyleSheet, Text, Alert, TouchableOpacity, ScrollView } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { supabase } from '@/lib/supabase';
 import SlidingPostView from '@/components/SlidingPostView';
 import LocationPostsList from '@/components/LocationPostsList';
 import * as Location from 'expo-location';
+
+const CATEGORIES = ['all', 'desks', 'chairs', 'others'] as const;
+type Category = typeof CATEGORIES[number];
 
 interface Post {
   id: string;
@@ -12,6 +15,9 @@ interface Post {
     latitude: number;
     longitude: number;
   };
+  category: string;
+  title: string;
+  description: string;
   // add other post properties as needed
 }
 
@@ -29,6 +35,7 @@ export default function MapViewPosts({ userId }: { userId: string }) {
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category>('all');
   const [mapRegion, setMapRegion] = useState({
     latitude: 25.033964,
     longitude: 121.564468,
@@ -162,19 +169,53 @@ export default function MapViewPosts({ userId }: { userId: string }) {
     setSelectedPost(null);
   };
 
+  const filteredPosts = posts.filter(locationData => {
+    if (selectedCategory === 'all') return true;
+    return locationData.posts.some(post => post.category === selectedCategory);
+  });
+
+  const CategoryFilter = () => (
+    <View style={styles.filterContainer}>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterScroll}
+      >
+        {CATEGORIES.map((category) => (
+          <TouchableOpacity
+            key={category}
+            style={[
+              styles.filterButton,
+              selectedCategory === category && styles.filterButtonActive
+            ]}
+            onPress={() => setSelectedCategory(category)}
+          >
+            <Text style={[
+              styles.filterButtonText,
+              selectedCategory === category && styles.filterButtonTextActive
+            ]}>
+              {category.charAt(0).toUpperCase() + category.slice(1)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
   if (error) {
     return <Text style={styles.errorText}>{error}</Text>;
   }
 
   return (
     <View style={styles.container}>
+      <CategoryFilter />
       <MapView
         style={styles.map}
         region={mapRegion}
         showsUserLocation={true}
         showsMyLocationButton={true}
       >
-        {posts.map((locationData, index) => (
+        {filteredPosts.map((locationData, index) => (
           locationData.coordinates && (
             <Marker
               key={index}
@@ -207,8 +248,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   map: {
-    width: '100%',
-    height: '100%',
+    flex: 1,
   },
   errorText: {
     flex: 1,
@@ -216,5 +256,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     color: 'red',
+  },
+  filterContainer: {
+    position: 'absolute',
+    top: 20,
+    left: 0,
+    right: 0,
+    zIndex: 1,
+    backgroundColor: 'transparent',
+  },
+  filterScroll: {
+    paddingHorizontal: 10,
+  },
+  filterButton: {
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  filterButtonActive: {
+    backgroundColor: '#000',
+  },
+  filterButtonText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '600',
+  },
+  filterButtonTextActive: {
+    color: 'white',
   },
 });

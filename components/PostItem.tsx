@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, TextInput, Animated, Dimensions, PanResponder, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, TextInput, Animated, Dimensions, PanResponder, Alert, ActivityIndicator, Share as RNShare } from 'react-native';
 import { supabase } from '@/lib/supabase';
-import { Heart, Send, X, Trash2, MessageCircle } from 'lucide-react-native';
+import { Heart, Send, X, Trash2, MessageCircle, Share as ShareIcon } from 'lucide-react-native';
 import PagerView from 'react-native-pager-view';
 import { useAuth } from '@/hooks/useAuth';
 import { FlashList } from "@shopify/flash-list";
@@ -300,6 +300,19 @@ export default function PostItem({ post, userId, showDelete, onDelete }) {
     });
   };
 
+  const handleShare = async () => {
+    try {
+      const shareUrl = `tmhapp://post/${post.id}`;
+      const webShareUrl = `https://yourapp.com/post/${post.id}`;
+      
+      await RNShare.share({
+        message: `Check out this post: ${post.description}\n${webShareUrl}`,
+      });
+    } catch (error) {
+      console.error('Error sharing post:', error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -355,6 +368,9 @@ export default function PostItem({ post, userId, showDelete, onDelete }) {
           </View>
           <TouchableOpacity onPress={handleStartChat} style={styles.chatButton}>
             <MessageCircle size={24} color="#000" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
+            <ShareIcon size={24} color="#000" />
           </TouchableOpacity>
         </View>
         {showDelete && post.user_id === userId && (
@@ -587,31 +603,33 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   userInfo: {
     flex: 1,
   },
   categoryBadge: {
     backgroundColor: '#f0f0f0',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     marginLeft: 8,
   },
   categoryText: {
     fontSize: 12,
     color: '#666',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   actionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   chatButton: {
+    marginLeft: 16,
+    padding: 4,
+  },
+  shareButton: {
     marginLeft: 16,
     padding: 4,
   },

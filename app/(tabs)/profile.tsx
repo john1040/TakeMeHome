@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, FlatList, TouchableOpacity, Image, Text } from 'react-native';
+import { StyleSheet, View, FlatList, TouchableOpacity, Image, Text, ActivityIndicator } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -8,6 +8,33 @@ import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import ThemedButton from '@/components/ThemeButton';
 import { Alert } from 'react-native';
+
+const PostImage = React.memo(({ uri }: { uri: string }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  return (
+    <View style={styles.postImageContainer}>
+      <Image
+        source={{ uri }}
+        style={styles.postImage}
+        onLoadStart={() => setIsLoading(true)}
+        onLoadEnd={() => setIsLoading(false)}
+        onError={() => setHasError(true)}
+      />
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" />
+        </View>
+      )}
+      {hasError && (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={24} color="gray" />
+        </View>
+      )}
+    </View>
+  );
+});
 
 export default function TabTwoScreen() {
   const { userProfile } = useAuth();
@@ -42,7 +69,7 @@ export default function TabTwoScreen() {
 
   const renderPostItem = ({ item }: { item: { id: number; image: { url: string }[] } }) => (
     <TouchableOpacity onPress={() => handlePostPress(item.id)} style={styles.postItem}>
-      <Image source={{ uri: item.image[0].url }} style={styles.postImage} />
+      <PostImage uri={item.image[0].url} />
     </TouchableOpacity>
   );
 
@@ -83,6 +110,33 @@ const styles = StyleSheet.create({
     flex: 1,
     margin: 4,
     aspectRatio: 1,
+  },
+  postImageContainer: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+  },
+  errorContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
   },
   postImage: {
     width: '100%',

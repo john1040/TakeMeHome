@@ -28,6 +28,13 @@ const PostCard = memo(({ item, onPress }) => (
       loading="eager"
     />
     <View style={styles.postInfo}>
+      {item.category && (
+        <View style={styles.categoryBadge}>
+          <Text style={styles.categoryText}>
+            {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+          </Text>
+        </View>
+      )}
       <Text style={styles.description} numberOfLines={2}>
         {item.description}
       </Text>
@@ -145,6 +152,19 @@ const styles = StyleSheet.create({
   date: {
     fontSize: 12,
     color: '#666',
+  },
+  categoryBadge: {
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 4,
+  },
+  categoryText: {
+    fontSize: 11,
+    color: '#666',
+    fontWeight: '600',
   },
 });
 
