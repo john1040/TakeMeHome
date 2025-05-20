@@ -1,15 +1,21 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import ThemedButton from '@/components/ThemeButton';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { Alert } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ThemedText';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function SettingsScreen() {
   const { userProfile } = useAuth();
   const queryClient = useQueryClient();
+  const colorScheme = useColorScheme();
 
   const handleSignOut = async () => {
     try {
@@ -57,19 +63,94 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <ThemedButton type='default' onPress={handleSignOut} title='登出' />
-      <ThemedButton type='danger' onPress={handleDeleteAccount} title='刪除帳號' />
-    </View>
+    <ThemedView style={styles.container}>
+      <ThemedView style={styles.header}>
+        <ThemedText type="title" style={styles.headerTitle}>設定</ThemedText>
+      </ThemedView>
+      
+      <ThemedView style={styles.section}>
+        <ThemedText style={styles.sectionTitle}>帳號管理</ThemedText>
+        
+        <ThemedView style={styles.buttonContainer}>
+          <ThemedView style={styles.buttonWrapper}>
+            <Ionicons
+              name="log-out-outline"
+              size={20}
+              color={Colors[colorScheme ?? 'light'].text}
+              style={styles.buttonIcon}
+            />
+            <ThemedButton
+              type='default'
+              onPress={handleSignOut}
+              title='登出'
+            />
+          </ThemedView>
+          
+          <ThemedView style={styles.buttonWrapper}>
+            <Ionicons
+              name="trash-outline"
+              size={20}
+              color={Colors[colorScheme ?? 'light'].error}
+              style={styles.buttonIcon}
+            />
+            <ThemedButton
+              type='error'
+              onPress={handleDeleteAccount}
+              title='刪除帳號'
+            />
+          </ThemedView>
+        </ThemedView>
+      </ThemedView>
+
+      <ThemedView style={styles.footer}>
+        <ThemedText style={styles.version}>版本 1.0.0</ThemedText>
+      </ThemedView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap:16,
     padding: 16,
   },
-}); 
+  header: {
+    paddingVertical: 16,
+    marginBottom: 24,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '600',
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 16,
+    opacity: 0.7,
+  },
+  buttonContainer: {
+    gap: 12,
+  },
+  buttonWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  buttonIcon: {
+    width: 20,
+    height: 20,
+  },
+  footer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingBottom: 16,
+  },
+  version: {
+    fontSize: 14,
+    opacity: 0.5,
+  },
+});

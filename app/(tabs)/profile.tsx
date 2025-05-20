@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, FlatList, TouchableOpacity, Image, Text, ActivityIndicator } from 'react-native';
+import { StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -8,13 +8,16 @@ import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import ThemedButton from '@/components/ThemeButton';
 import { Alert } from 'react-native';
+import { Colors, palette } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 const PostImage = React.memo(({ uri }: { uri: string }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const colorScheme = useColorScheme();
 
   return (
-    <View style={styles.postImageContainer}>
+    <ThemedView style={styles.postImageContainer}>
       <Image
         source={{ uri }}
         style={styles.postImage}
@@ -23,21 +26,23 @@ const PostImage = React.memo(({ uri }: { uri: string }) => {
         onError={() => setHasError(true)}
       />
       {isLoading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" />
-        </View>
+        <ThemedView style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color={Colors[colorScheme ?? 'light'].primary} />
+        </ThemedView>
       )}
       {hasError && (
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle" size={24} color="gray" />
-        </View>
+        <ThemedView style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={24} color={Colors[colorScheme ?? 'light'].error} />
+          <ThemedText style={styles.errorText}>Failed to load image</ThemedText>
+        </ThemedView>
       )}
-    </View>
+    </ThemedView>
   );
 });
 
-export default function TabTwoScreen() {
+export default function ProfileScreen() {
   const { userProfile } = useAuth();
+  const colorScheme = useColorScheme();
   const [posts, setPosts] = useState<{ id: number; image: { url: string }[] }[]>([]);
 
   useEffect(() => {
@@ -74,21 +79,34 @@ export default function TabTwoScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.titleContainer}>
-        <ThemedText type="title">我的帳號 {userProfile?.username}</ThemedText>
-        <TouchableOpacity onPress={() => router.push('/settings')}>
-          <Ionicons name="settings-outline" size={24} color="black" />
+    <ThemedView style={styles.container}>
+      <ThemedView style={styles.titleContainer}>
+        <ThemedView style={styles.profileHeader}>
+          <ThemedText type="title" style={styles.username}>{userProfile?.username}</ThemedText>
+          <ThemedText style={styles.postsCount}>{posts.length} Posts</ThemedText>
+        </ThemedView>
+        <TouchableOpacity
+          onPress={() => router.push('/settings')}
+          style={styles.settingsButton}
+        >
+          <Ionicons name="settings-outline" size={24} color={Colors[colorScheme ?? 'light'].icon} />
         </TouchableOpacity>
-      </View>
+      </ThemedView>
       <FlatList
         data={posts}
         renderItem={renderPostItem}
         keyExtractor={item => item.id.toString()}
         numColumns={3}
         contentContainerStyle={styles.postsContainer}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={() => (
+          <ThemedView style={styles.emptyState}>
+            <Ionicons name="images-outline" size={48} color={Colors[colorScheme ?? 'light'].icon} />
+            <ThemedText style={styles.emptyStateText}>No posts yet</ThemedText>
+          </ThemedView>
+        )}
       />
-    </View>
+    </ThemedView>
   );
 }
 
@@ -99,9 +117,24 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     flexDirection: 'row',
-    gap: 8,
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  profileHeader: {
+    gap: 4,
+  },
+  username: {
+    fontSize: 24,
+    fontWeight: '600',
+  },
+  postsCount: {
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  settingsButton: {
+    padding: 8,
+    borderRadius: 20,
   },
   postsContainer: {
     paddingVertical: 16,
@@ -115,6 +148,8 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     position: 'relative',
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   loadingContainer: {
     position: 'absolute',
@@ -124,8 +159,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.05)',
   },
   errorContainer: {
     position: 'absolute',
@@ -135,12 +169,26 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    gap: 8,
+  },
+  errorText: {
+    fontSize: 12,
+    opacity: 0.7,
   },
   postImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 8,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+    gap: 12,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    opacity: 0.7,
   },
 });

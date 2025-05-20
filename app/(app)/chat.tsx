@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, TextInput, FlatList, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { TextInput, FlatList, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
-import { Send } from 'lucide-react-native';
+import { Send, ArrowLeft } from 'lucide-react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 // Helper function to generate UUID
 const generateUUID = () => {
@@ -28,8 +30,10 @@ export default function Chat() {
   const { recipientId, recipientUsername } = useLocalSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const { session, userProfile } = useAuth();
   const flatListRef = useRef<FlatList>(null);
+  const colorScheme = useColorScheme();
 
   const scrollToBottom = () => {
     if (flatListRef.current && messages.length > 0) {
@@ -73,6 +77,7 @@ export default function Chat() {
   }, [messages]);
 
   const fetchMessages = async () => {
+    setIsLoading(true);
     if (!session?.user?.id || !recipientId) return;
 
     const { data, error } = await supabase
@@ -93,6 +98,7 @@ export default function Chat() {
       ...msg,
       sender_username: msg.sender.username
     })));
+    setIsLoading(false);
   };
 
   const sendMessage = async () => {
@@ -131,24 +137,31 @@ export default function Chat() {
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = item.sender_id === session?.user?.id;
-
+    
     return (
-      <View style={[
-        styles.messageContainer,
-        isOwnMessage ? styles.ownMessage : styles.otherMessage
-      ]}>
-        <ThemedView style={styles.messageBubble}>
-          <ThemedText style={styles.messageUsername}>
+      <ThemedView
+        style={[
+          styles.messageContainer,
+          isOwnMessage ? styles.ownMessage : styles.otherMessage
+        ]}
+      >
+        <ThemedView
+          style={[
+            styles.messageBubble,
+            isOwnMessage ? styles.ownMessageBubble : styles.otherMessageBubble
+          ]}
+        >
+          <ThemedText style={[styles.messageUsername, isOwnMessage && styles.ownMessageUsername]}>
             {isOwnMessage ? 'You' : item.sender_username}
           </ThemedText>
           <ThemedText style={styles.messageContent}>
             {item.content}
           </ThemedText>
-          <ThemedText style={styles.messageTime}>
+          <ThemedText style={[styles.messageTime, isOwnMessage && styles.ownMessageTime]}>
             {new Date(item.created_at).toLocaleTimeString()}
           </ThemedText>
         </ThemedView>
-      </View>
+      </ThemedView>
     );
   };
 
@@ -159,54 +172,115 @@ export default function Chat() {
       keyboardVerticalOffset={100}
     >
       <ThemedView style={styles.header}>
-        <ThemedText style={styles.headerText}>
-          Chat with {recipientUsername}
-        </ThemedText>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <ArrowLeft size={24} color={Colors[colorScheme ?? 'light'].text} />
+        </TouchableOpacity>
+        <ThemedView style={styles.headerContent}>
+          <ThemedText style={styles.headerText}>
+            {recipientUsername}
+          </ThemedText>
+        </ThemedView>
       </ThemedView>
 
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
-        style={styles.messagesList}
-        contentContainerStyle={styles.messagesContainer}
-        inverted={false}
-        maintainVisibleContentPosition={{
-          minIndexForVisible: 0,
-          autoscrollToTopThreshold: 10,
-        }}
-      />
+      {isLoading ? (
+        <ThemedView style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors[colorScheme ?? 'light'].primary} />
+        </ThemedView>
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
+          style={styles.messagesList}
+          contentContainerStyle={[
+            styles.messagesContainer,
+            messages.length === 0 && styles.emptyList
+          ]}
+          inverted={false}
+          maintainVisibleContentPosition={{
+            minIndexForVisible: 0,
+            autoscrollToTopThreshold: 10,
+          }}
+          ListEmptyComponent={() => (
+            <ThemedView style={styles.emptyContainer}>
+              <ThemedText style={styles.emptyText}>
+                No messages yet. Start the conversation!
+              </ThemedText>
+            </ThemedView>
+          )}
+        />
+      )}
 
-      <View style={styles.inputContainer}>
+      <ThemedView style={styles.inputContainer}>
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            { color: Colors[colorScheme ?? 'light'].text }
+          ]}
           value={newMessage}
           onChangeText={setNewMessage}
           placeholder="Type a message..."
-          placeholderTextColor="#666"
+          placeholderTextColor={Colors[colorScheme ?? 'light'].text + '80'}
           multiline
+          maxLength={500}
         />
-        <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
-          <Send size={24} color="#000" />
+        <TouchableOpacity
+          onPress={sendMessage}
+          style={[
+            styles.sendButton,
+            { opacity: newMessage.trim() ? 1 : 0.5 }
+          ]}
+          disabled={!newMessage.trim()}
+        >
+          <Send size={24} color={Colors[colorScheme ?? 'light'].primary} />
         </TouchableOpacity>
-      </View>
+      </ThemedView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    opacity: 0.7,
+    textAlign: 'center',
+  },
+  emptyList: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   container: {
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
+    borderBottomColor: Colors.light.border + '40',
+  },
+  backButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  headerContent: {
+    flex: 1,
   },
   headerText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   messagesList: {
     flex: 1,
@@ -225,41 +299,57 @@ const styles = StyleSheet.create({
   messageBubble: {
     padding: 12,
     borderRadius: 16,
-    backgroundColor: '#e3e3e3',
+    maxWidth: '80%',
+  },
+  ownMessageBubble: {
+    backgroundColor: Colors.light.primary + '20',
+  },
+  otherMessageBubble: {
+    backgroundColor: Colors.light.secondary + '20',
   },
   messageUsername: {
     fontSize: 12,
     marginBottom: 4,
-    color: '#666',
+    opacity: 0.7,
+  },
+  ownMessageUsername: {
+    textAlign: 'right',
   },
   messageContent: {
     fontSize: 16,
+    lineHeight: 20,
   },
   messageTime: {
     fontSize: 10,
-    color: '#666',
+    opacity: 0.5,
     marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  ownMessageTime: {
     alignSelf: 'flex-end',
   },
   inputContainer: {
     flexDirection: 'row',
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#ccc',
-    alignItems: 'center',
+    borderTopColor: Colors.light.border + '40',
+    alignItems: 'flex-end',
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: Colors.light.border + '40',
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingTop: 8,
+    paddingBottom: 8,
     marginRight: 8,
     maxHeight: 100,
+    minHeight: 40,
   },
   sendButton: {
     padding: 8,
+    borderRadius: 20,
   },
   messagesContainer: {
     flexGrow: 1,

@@ -121,6 +121,7 @@ const styles = StyleSheet.create({
   },
   authContainer: {
     width: '100%',
+    alignItems: 'center',
   },
   loadingContainer: {
     flex: 1,
