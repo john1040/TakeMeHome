@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Alert, StyleSheet, View, Text, TextInput, Dimensions } from 'react-native'
+import { Alert, StyleSheet, View, Text, TextInput, Dimensions, Platform } from 'react-native'
 import { supabase } from '@/lib/supabase'
 import { Button, Input } from '@rneui/themed'
 import { Picker } from '@react-native-picker/picker'
@@ -245,7 +245,7 @@ export default function PhoneVerification() {
         {/* Header Section */}
         <View style={styles.headerSection}>
           <ThemedText type="title" style={styles.title}>驗證手機號碼</ThemedText>
-          <ThemedText type="body" style={styles.subtitle}>
+          <ThemedText type="default" style={styles.subtitle}>
             我們將發送驗證碼到您的手機
           </ThemedText>
         </View>
@@ -256,8 +256,18 @@ export default function PhoneVerification() {
             <View style={styles.countryCodeContainer}>
               <Picker
                 selectedValue={countryCode}
-                onValueChange={(itemValue) => setCountryCode(itemValue)}
-                style={styles.countryCodePicker}
+                onValueChange={(itemValue) => {
+                  console.log('Picker value changed:', itemValue);
+                  setCountryCode(itemValue);
+                }}
+                style={[
+                  styles.countryCodePicker,
+                  Platform.select({
+                    ios: { height: 50, fontSize: 16 },
+                    android: { height: 50, color: '#333' }
+                  })
+                ]}
+                mode={Platform.OS === 'android' ? 'dialog' : 'dropdown'}
               >
                 {countryCodeOptions.map((option) => (
                   <Picker.Item 
@@ -299,7 +309,7 @@ export default function PhoneVerification() {
         {/* OTP Input Section */}
         {showOtpInput && (
           <View style={styles.otpSection}>
-            <ThemedText type="body" style={styles.otpInstructions}>
+            <ThemedText type="default" style={styles.otpInstructions}>
               請輸入驗證碼
             </ThemedText>
             <View style={styles.otpContainer}>
@@ -308,8 +318,8 @@ export default function PhoneVerification() {
                   key={index}
                   style={[
                     styles.otpInput,
-                    digit && styles.otpInputFilled,
-                    otpInputs.current[index]?.isFocused() && styles.otpInputFocused
+                    digit ? styles.otpInputFilled : null,
+                    otpInputs.current[index]?.isFocused() ? styles.otpInputFocused : null
                   ]}
                   value={digit}
                   onChangeText={(text) => handleOtpChange(text, index)}
@@ -374,12 +384,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   countryCodeContainer: {
-    width: 120,
+    width: 150,
     height: 50,
     marginRight: 12,
     borderRadius: 8,
     backgroundColor: '#f5f5f5',
-    overflow: 'hidden',
+    justifyContent: 'center',
   },
   countryCodePicker: {
     height: 50,

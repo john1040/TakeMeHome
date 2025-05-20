@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, Alert, TouchableOpacity, ScrollView } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { StyleSheet, TouchableOpacity, ScrollView, Alert, View, Platform } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import { supabase } from '@/lib/supabase';
 import SlidingPostView from '@/components/SlidingPostView';
 import LocationPostsList from '@/components/LocationPostsList';
 import * as Location from 'expo-location';
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ThemedText';
+import { palette } from '@/constants/Colors';
+import { Ionicons } from '@expo/vector-icons';
 
 const CATEGORIES = ['all', 'desks', 'chairs', 'others'] as const;
 type Category = typeof CATEGORIES[number];
@@ -18,7 +22,8 @@ interface Post {
   category: string;
   title: string;
   description: string;
-  // add other post properties as needed
+  geolocation?: string;
+  image?: { url: string };
 }
 
 interface LocationData {
@@ -70,7 +75,7 @@ export default function MapViewPosts({ userId }: { userId: string }) {
 
   const fetchPosts = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('post')
         .select(`
           *,
@@ -79,7 +84,7 @@ export default function MapViewPosts({ userId }: { userId: string }) {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
 
       const postsWithCoords = data.map(post => ({
         ...post,
@@ -87,7 +92,7 @@ export default function MapViewPosts({ userId }: { userId: string }) {
       }));
 
       // Group posts by location
-      const groupedPosts = postsWithCoords.reduce((acc, post) => {
+      const groupedPosts = postsWithCoords.reduce((acc: Record<string, LocationData>, post: Post) => {
         if (!post.coordinates) return acc;
         
         const key = `${post.coordinates.latitude.toFixed(5)},${post.coordinates.longitude.toFixed(5)}`;
@@ -102,8 +107,8 @@ export default function MapViewPosts({ userId }: { userId: string }) {
       }, {});
 
       setPosts(Object.values(groupedPosts));
-    } catch (error) {
-      console.error('Error fetching posts:', error);
+    } catch (fetchError) {
+      console.error('Error fetching posts:', fetchError);
       setError('Failed to load posts. Please try again later.');
     }
   };
@@ -115,29 +120,15 @@ export default function MapViewPosts({ userId }: { userId: string }) {
     }
     
     try {
-      // Ensure ewkb is a string and remove any non-hex characters
       ewkb = ewkb.replace(/[^0-9A-Fa-f]/g, '');
-      
-      // Convert hex string to byte array
-      const bytes = new Uint8Array(ewkb.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-      
-      // Check endianness (1 = little-endian, 0 = big-endian)
+      const bytes = new Uint8Array(ewkb.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
       const littleEndian = bytes[0] === 1;
-      
-      // Skip to the coordinate data (skip endian byte, type, and SRID)
       let index = 1 + 4 + 4;
-      
-      // Read X (longitude)
       const xBytes = bytes.slice(index, index + 8);
       index += 8;
-      
-      // Read Y (latitude)
       const yBytes = bytes.slice(index, index + 8);
-      
-      // Convert bytes to doubles
       const x = littleEndian ? ieee754ToDouble(xBytes) : ieee754ToDouble(xBytes.reverse());
       const y = littleEndian ? ieee754ToDouble(yBytes) : ieee754ToDouble(yBytes.reverse());
-      
       return { latitude: y, longitude: x };
     } catch (error) {
       console.warn('Invalid EWKB format:', ewkb, error);
@@ -175,7 +166,7 @@ export default function MapViewPosts({ userId }: { userId: string }) {
   });
 
   const CategoryFilter = () => (
-    <View style={styles.filterContainer}>
+    <ThemedView variant="surface" style={styles.filterContainer}>
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
@@ -190,30 +181,60 @@ export default function MapViewPosts({ userId }: { userId: string }) {
             ]}
             onPress={() => setSelectedCategory(category)}
           >
-            <Text style={[
-              styles.filterButtonText,
-              selectedCategory === category && styles.filterButtonTextActive
-            ]}>
+            {category === 'all' && (
+              <Ionicons 
+                name="grid-outline" 
+                size={16} 
+                color={selectedCategory === category ? palette.white : palette.teal}
+                style={styles.filterIcon}
+              />
+            )}
+            <ThemedText
+              style={[
+                styles.filterButtonText,
+                selectedCategory === category && styles.filterButtonTextActive
+              ]}
+            >
               {category.charAt(0).toUpperCase() + category.slice(1)}
-            </Text>
+            </ThemedText>
           </TouchableOpacity>
         ))}
       </ScrollView>
-    </View>
+    </ThemedView>
   );
 
   if (error) {
-    return <Text style={styles.errorText}>{error}</Text>;
+    return (
+      <ThemedView style={styles.errorContainer} variant="surface">
+        <Ionicons name="alert-circle-outline" size={32} color={palette.gold} />
+        <ThemedText type="subtitle" style={styles.errorTitle}>
+          Oops!
+        </ThemedText>
+        <ThemedText style={styles.errorText}>{error}</ThemedText>
+      </ThemedView>
+    );
   }
 
   return (
     <View style={styles.container}>
-      <CategoryFilter />
       <MapView
         style={styles.map}
         region={mapRegion}
         showsUserLocation={true}
         showsMyLocationButton={true}
+        provider={Platform.OS === 'android' ? 'google' : undefined}
+        customMapStyle={Platform.OS === 'android' ? [
+          {
+            featureType: 'all',
+            elementType: 'labels.text.fill',
+            stylers: [{ color: palette.carbon }]
+          },
+          {
+            featureType: 'water',
+            elementType: 'geometry.fill',
+            stylers: [{ color: palette.teal + '40' }]
+          }
+        ] : undefined}
       >
         {filteredPosts.map((locationData, index) => (
           locationData.coordinates && (
@@ -221,10 +242,13 @@ export default function MapViewPosts({ userId }: { userId: string }) {
               key={index}
               coordinate={locationData.coordinates}
               onPress={() => handleMarkerPress(locationData)}
+              pinColor={palette.deepTeal}
             />
           )
         ))}
       </MapView>
+
+      <CategoryFilter />
 
       {selectedLocation && (
         <LocationPostsList
@@ -250,48 +274,66 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  errorText: {
+  errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    color: 'red',
+  },
+  errorTitle: {
+    color: palette.gold,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorText: {
+    color: palette.carbon,
+    textAlign: 'center',
   },
   filterContainer: {
     position: 'absolute',
     top: 20,
-    left: 0,
-    right: 0,
+    left: 16,
+    right: 16,
     zIndex: 1,
-    backgroundColor: 'transparent',
+    borderRadius: 28,
+    backgroundColor: palette.white,
+    shadowColor: palette.carbon,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
   },
   filterScroll: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
   },
   filterButton: {
-    backgroundColor: 'white',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: `${palette.teal}10`,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     marginHorizontal: 4,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    borderWidth: 1,
+    borderColor: palette.teal,
   },
   filterButtonActive: {
-    backgroundColor: '#000',
+    backgroundColor: palette.teal,
+    borderColor: palette.teal,
+  },
+  filterIcon: {
+    marginRight: 4,
   },
   filterButtonText: {
     fontSize: 14,
-    color: '#666',
+    color: palette.teal,
     fontWeight: '600',
   },
   filterButtonTextActive: {
-    color: 'white',
+    color: palette.white,
   },
 });

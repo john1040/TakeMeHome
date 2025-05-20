@@ -1,9 +1,11 @@
-import { View, StyleSheet, ActivityIndicator, Animated, Image } from 'react-native';
+import { StyleSheet, ActivityIndicator, Animated, Image, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useEffect, useRef } from 'react';
 import Auth from '@/components/Auth';
 import { useAuth } from '@/hooks/useAuth';
 import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { palette } from '@/constants/Colors';
 
 export default function App() {
   const { session, isLoading, error } = useAuth();
@@ -16,12 +18,12 @@ export default function App() {
       Animated.sequence([
         Animated.timing(animatedValue, {
           toValue: 1,
-          duration: 3000,
+          duration: 5000,
           useNativeDriver: false,
         }),
         Animated.timing(animatedValue, {
           toValue: 0,
-          duration: 3000,
+          duration: 5000,
           useNativeDriver: false,
         }),
       ]),
@@ -30,46 +32,59 @@ export default function App() {
 
   const backgroundColorInterpolation = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: ['#F5F5F5', '#FFFFFF'],  // Subtle light gray to white transition
+    outputRange: [palette.teal, palette.deepTeal],
   });
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <ThemedView style={styles.loadingContainer} variant="surface">
         <Image 
           source={require('@/assets/images/TMH_Logo.png')}
           style={styles.logoSmall}
           resizeMode="contain"
         />
-        <ActivityIndicator size="large" color="#666" />
-      </View>
+        <ActivityIndicator size="large" color={palette.deepTeal} />
+      </ThemedView>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <ThemedText style={styles.errorText}>Error: {error.message}</ThemedText>
-      </View>
+      <ThemedView style={styles.container} variant="surface">
+        <ThemedText type="heading" style={styles.errorTitle}>Oops!</ThemedText>
+        <ThemedText style={styles.errorText}>
+          Something went wrong: {error.message}
+        </ThemedText>
+      </ThemedView>
     );
   }
 
   return (
     <Animated.View style={[styles.outer, { backgroundColor: backgroundColorInterpolation }]}>
       <LinearGradient
-        colors={['#F5F5F5', '#FFFFFF']}
+        colors={[palette.sage, palette.deepTeal]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={styles.gradientBackground}
       >
-        <View style={styles.logoContainer}>
-          <Image 
-            source={require('@/assets/images/TMH_Logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </View>
-        <View style={styles.authContainer}>
-          <Auth />
-        </View>
+        <ThemedView variant="surface" style={styles.contentContainer}>
+          <View style={styles.logoContainer}>
+            <Image 
+              source={require('@/assets/images/TMH_Logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+            <ThemedText type="title" style={styles.welcomeText}>
+              Welcome Back
+            </ThemedText>
+            <ThemedText type="caption" style={styles.subtitleText}>
+              Sign in to continue
+            </ThemedText>
+          </View>
+          <View style={styles.authContainer}>
+            <Auth />
+          </View>
+        </ThemedView>
       </LinearGradient>
     </Animated.View>
   );
@@ -83,36 +98,66 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
+  },
+  contentContainer: {
+    width: '100%',
+    borderRadius: 20,
+    overflow: 'hidden',
+    padding: 24,
+    marginTop: 40,
+    shadowColor: palette.carbon,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   logoContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
     alignItems: 'center',
-    paddingBottom: 50,
+    marginBottom: 32,
   },
   authContainer: {
-    flex: 1,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    paddingTop: 50,
     width: '100%',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
   },
   logo: {
-    width: 200,
-    height: 80,
+    width: 180,
+    height: 72,
+    marginBottom: 24,
   },
   logoSmall: {
     width: 150,
     height: 60,
     marginBottom: 20,
   },
+  welcomeText: {
+    marginBottom: 8,
+    color: palette.deepTeal,
+  },
+  subtitleText: {
+    color: palette.teal,
+    marginBottom: 16,
+  },
+  errorTitle: {
+    color: palette.gold,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
   errorText: {
-    color: 'red',
+    color: palette.carbon,
+    textAlign: 'center',
+  },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
 });

@@ -1,14 +1,16 @@
 import React, { ReactNode } from 'react';
 import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle, StyleProp } from 'react-native';
 import { useThemeColor } from '@/hooks/useThemeColor';
+import { Colors, palette } from '@/constants/Colors';
 
 export type ThemedButtonProps = {
   onPress: () => void;
   title?: string;
   lightColor?: string;
   darkColor?: string;
-  type?: 'default' | 'primary' | 'danger' | 'secondary';
+  type?: 'default' | 'primary' | 'secondary' | 'accent' | 'error';
   size?: 'small' | 'medium' | 'large';
+  variant?: 'solid' | 'outlined';
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
   children?: ReactNode;
@@ -22,27 +24,44 @@ export function ThemedButton({
   darkColor,
   type = 'default',
   size = 'medium',
+  variant = 'solid',
   style,
   textStyle,
   children,
   disabled = false,
 }: ThemedButtonProps) {
-  const backgroundColor = useThemeColor({ light: lightColor, dark: darkColor }, 'background');
-  const textColor = useThemeColor({ light: 'black', dark: 'white' }, 'text');
+  // Map button types to theme colors
+  const getThemeColor = (buttonType: ThemedButtonProps['type']) => {
+    switch (buttonType) {
+      case 'primary':
+        return 'primary';
+      case 'secondary':
+        return 'secondary';
+      case 'accent':
+        return 'accent';
+      case 'error':
+        return 'error';
+      default:
+        return 'background';
+    }
+  };
 
+  const backgroundColor = useThemeColor({}, getThemeColor(type));
+  const borderColor = useThemeColor({}, type === 'default' ? 'border' : getThemeColor(type));
+  
   return (
     <TouchableOpacity
       style={[
         styles.button,
-        { backgroundColor },
-        size === 'small' ? styles.buttonSmall : undefined,
-        size === 'medium' ? styles.buttonMedium : undefined,
-        size === 'large' ? styles.buttonLarge : undefined,
-        type === 'default' ? styles.buttonDefault : undefined,
-        type === 'primary' ? styles.buttonPrimary : undefined,
-        type === 'danger' ? styles.buttonDanger : undefined,
-        type === 'secondary' ? styles.buttonSecondary : undefined,
-        disabled ? styles.buttonDisabled : undefined,
+        variant === 'solid' && { backgroundColor },
+        variant === 'outlined' && {
+          backgroundColor: 'transparent',
+          borderColor: borderColor,
+        },
+        size === 'small' && styles.buttonSmall,
+        size === 'medium' && styles.buttonMedium,
+        size === 'large' && styles.buttonLarge,
+        disabled && styles.buttonDisabled,
         style,
       ]}
       onPress={onPress}
@@ -54,15 +73,20 @@ export function ThemedButton({
         <Text
           style={[
             styles.text,
-            { color: textColor },
-            size === 'small' ? styles.textSmall : undefined,
-            size === 'medium' ? styles.textMedium : undefined,
-            size === 'large' ? styles.textLarge : undefined,
-            type === 'default' ? styles.textDefault : undefined,
-            type === 'primary' ? styles.textPrimary : undefined,
-            type === 'danger' ? styles.textDanger : undefined,
-            type === 'secondary' ? styles.textSecondary : undefined,
-            disabled ? styles.textDisabled : undefined,
+            variant === 'solid' && { 
+              color: type === 'default' ? 
+                Colors.light.text : 
+                palette.white 
+            },
+            variant === 'outlined' && { 
+              color: type === 'default' ? 
+                Colors.light.text : 
+                borderColor 
+            },
+            size === 'small' && styles.textSmall,
+            size === 'medium' && styles.textMedium,
+            size === 'large' && styles.textLarge,
+            disabled && styles.textDisabled,
             textStyle,
           ]}
         >
@@ -77,66 +101,46 @@ const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 4,
+    borderRadius: 8,
     borderWidth: 1,
+    overflow: 'hidden',
   },
   buttonSmall: {
     paddingHorizontal: 12,
     paddingVertical: 6,
+    borderRadius: 6,
   },
   buttonMedium: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
+    borderRadius: 8,
   },
   buttonLarge: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  buttonDefault: {
-    backgroundColor: 'white',
-    borderColor: 'black',
-  },
-  buttonPrimary: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
-  },
-  buttonDanger: {
-    backgroundColor: '#FF3B30',
-    borderColor: '#FF3B30',
-  },
-  buttonSecondary: {
-    backgroundColor: '#E5E5EA',
-    borderColor: '#E5E5EA',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 10,
   },
   text: {
-    fontWeight: '500',
+    fontWeight: '600',
+    textAlign: 'center',
   },
   textSmall: {
     fontSize: 14,
+    lineHeight: 20,
   },
   textMedium: {
     fontSize: 16,
+    lineHeight: 24,
   },
   textLarge: {
     fontSize: 18,
-  },
-  textDefault: {
-    color: 'black',
-  },
-  textPrimary: {
-    color: 'white',
-  },
-  textDanger: {
-    color: 'white',
-  },
-  textSecondary: {
-    color: 'black',
+    lineHeight: 28,
   },
   buttonDisabled: {
     opacity: 0.5,
   },
   textDisabled: {
-    opacity: 0.5,
+    opacity: 0.7,
   },
 });
 
