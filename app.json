@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.tmhapp",
+      "bundleIdentifier": "com.john1040.tmhapp",
       "infoPlist": {
     "NSLocationWhenInUseUsageDescription": "This app needs access to location to select post locations."
   },
@@ -26,7 +26,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.yourcompany.tmhapp",
+      "package": "com.john1040.tmhapp",
       "intentFilters": [
         {
           "action": "VIEW",

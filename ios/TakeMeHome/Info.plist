@@ -28,7 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>tmhapp</string>
-          <string>com.yourcompany.tmhapp</string>
+          <string>com.john1040.tmhapp</string>
         </array>
       </dict>
       <dict>
