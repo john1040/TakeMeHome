@@ -298,7 +298,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    overflow: 'visible',
   },
   closeMapButton: {
     position: 'absolute',
@@ -317,6 +319,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    overflow: 'visible',
   },
 });

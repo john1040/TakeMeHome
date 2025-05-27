@@ -144,7 +144,7 @@ export default function ReviewSubmit() {
           category: category,
         })
         .select();
-        console.log(error)
+        
       if (error) throw error;
 
       await Promise.all(uploadedImages.map(async (url, index) => {
