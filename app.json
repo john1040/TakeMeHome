@@ -7,11 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "tmhapp",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/images/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
+
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.john1040.tmhapp",
@@ -65,6 +61,15 @@
         "expo-camera",
         {
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#232323",
+          "image": "./assets/images/TMH_Logo_optimized.png",
+          "resizeMode": "contain",
+          "imageWidth": 100
         }
       ]
     ],
