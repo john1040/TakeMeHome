@@ -9,6 +9,7 @@
     "userInterfaceStyle": "automatic",
 
     "ios": {
+      "useAppleSignIn": true,
       "supportsTablet": true,
       "bundleIdentifier": "com.john1040.tmhapp",
       "infoPlist": {
@@ -71,6 +72,9 @@
           "resizeMode": "contain",
           "imageWidth": 100
         }
+      ],
+      [
+        "expo-apple-authentication"
       ]
     ],
     "experiments": {
