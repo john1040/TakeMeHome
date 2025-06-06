@@ -1,0 +1,71 @@
+{
+  "auth": {
+    "welcomeBack": "Welcome Back",
+    "signInToContinue": "Sign in to continue",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "continueWithGoogle": "Continue with Google",
+    "pleaseCheckInbox": "Please check your inbox for email verification!",
+    "pleaseFillAllFields": "Please fill in all fields",
+    "oops": "Oops!"
+  },
+  "profile": {
+    "posts": "Posts",
+    "noPostsYet": "No posts yet",
+    "failedToLoadImage": "Failed to load image",
+    "error": "Error",
+    "failedToLoadPosts": "Failed to load posts. Please try again."
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "ok": "OK",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "close": "Close"
+  },
+  "navigation": {
+    "home": "Home",
+    "explore": "Explore",
+    "createPost": "Create Post",
+    "profile": "Profile",
+    "settings": "Settings",
+    "myPosts": "My Posts"
+  },
+  "createPost": {
+    "selectImages": "Select Images",
+    "descriptionLocation": "Description & Location",
+    "reviewSubmit": "Review & Submit",
+    "addDescription": "Add a description...",
+    "selectLocation": "Select Location",
+    "publish": "Publish",
+    "draft": "Save as Draft"
+  },
+  "settings": {
+    "settings": "Settings",
+    "account": "Account",
+    "notifications": "Notifications",
+    "privacy": "Privacy",
+    "language": "Language",
+    "theme": "Theme",
+    "about": "About",
+    "signOut": "Sign Out",
+    "deleteAccount": "Delete Account",
+    "accountManagement": "Account Management",
+    "version": "Version 1.0.0",
+    "deleteAccountConfirmTitle": "Delete Account",
+    "deleteAccountConfirmMessage": "Are you sure you want to delete your account? This action cannot be undone.",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "failedToSignOut": "Failed to sign out. Please try again.",
+    "failedToDeleteAccount": "Failed to delete account. Please try again."
+  }
+}

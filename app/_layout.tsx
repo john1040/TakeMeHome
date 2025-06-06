@@ -7,13 +7,40 @@ import 'react-native-reanimated';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { TranslationProvider, useTranslationContext } from '@/contexts/TranslationContext';
+import '../lib/i18n'; // Initialize i18n
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
-export default function RootLayout() {
+function RootLayoutNavigator() {
   const colorScheme = useColorScheme();
+  const { t } = useTranslationContext();
+
+  return (
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="(app)/my-posts"
+          options={{
+            title: t('navigation.myPosts'),
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="(auth)"
+          options={{
+            headerShown: false,
+          }}
+        />
+      </Stack>
+    </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -31,24 +58,9 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen 
-              name="(app)/my-posts" 
-              options={{ 
-                title: '我的貼文',
-                animation: 'slide_from_right',
-              }} 
-            />
-            <Stack.Screen
-              name="(auth)"
-              options={{
-                headerShown: false,
-              }}
-            />
-          </Stack>
-        </ThemeProvider>
+        <TranslationProvider>
+          <RootLayoutNavigator />
+        </TranslationProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
   );

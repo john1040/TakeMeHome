@@ -11,6 +11,7 @@ import { Alert } from 'react-native';
 import { Colors, palette } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const { width } = Dimensions.get('window');
 const ITEM_SIZE = (width - 48) / 3; // 16px padding + 4px margin per item * 3 items
@@ -26,6 +27,7 @@ const PostImage = React.memo(({ uri }: { uri: string }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const colorScheme = useColorScheme();
+  const { t } = useTranslation();
   
   const thumbnailUri = getThumbnailUrl(uri, Math.round(ITEM_SIZE * 2)); // 2x for retina displays
 
@@ -47,7 +49,7 @@ const PostImage = React.memo(({ uri }: { uri: string }) => {
       {hasError && (
         <ThemedView style={styles.errorContainer}>
           <Ionicons name="alert-circle" size={24} color={Colors[colorScheme ?? 'light'].error} />
-          <ThemedText style={styles.errorText}>Failed to load image</ThemedText>
+          <ThemedText style={styles.errorText}>{t('profile.failedToLoadImage')}</ThemedText>
         </ThemedView>
       )}
     </ThemedView>
@@ -71,6 +73,7 @@ const fetchUserPosts = async (userId: string | undefined) => {
 export default function ProfileScreen() {
   const { userProfile } = useAuth();
   const colorScheme = useColorScheme();
+  const { t } = useTranslation();
 
   // Use React Query for data fetching with caching
   const {
@@ -92,7 +95,7 @@ export default function ProfileScreen() {
   React.useEffect(() => {
     if (error) {
       console.error('Error fetching posts:', error);
-      Alert.alert('Error', 'Failed to load posts. Please try again.');
+      Alert.alert(t('profile.error'), t('profile.failedToLoadPosts'));
     }
   }, [error]);
 
@@ -112,7 +115,7 @@ export default function ProfileScreen() {
       <ThemedView style={styles.titleContainer}>
         <ThemedView style={styles.profileHeader}>
           <ThemedText type="title" style={styles.username}>{userProfile?.username}</ThemedText>
-          <ThemedText style={styles.postsCount}>{posts.length} Posts</ThemedText>
+          <ThemedText style={styles.postsCount}>{posts.length} {t('profile.posts')}</ThemedText>
         </ThemedView>
         <TouchableOpacity
           onPress={() => router.push('/settings')}
@@ -148,7 +151,7 @@ export default function ProfileScreen() {
             ) : (
               <>
                 <Ionicons name="images-outline" size={48} color={Colors[colorScheme ?? 'light'].icon} />
-                <ThemedText style={styles.emptyStateText}>No posts yet</ThemedText>
+                <ThemedText style={styles.emptyStateText}>{t('profile.noPostsYet')}</ThemedText>
               </>
             )}
           </ThemedView>

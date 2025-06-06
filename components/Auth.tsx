@@ -6,8 +6,10 @@ import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
 import { palette } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Auth() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,7 +17,7 @@ export default function Auth() {
 
   async function signInWithEmail() {
     if (!email || !password) {
-      setErrorMessage('Please fill in all fields');
+      setErrorMessage(t('auth.pleaseFillAllFields'));
       return;
     }
     setLoading(true);
@@ -31,7 +33,7 @@ export default function Auth() {
 
   async function signUpWithEmail() {
     if (!email || !password) {
-      setErrorMessage('Please fill in all fields');
+      setErrorMessage(t('auth.pleaseFillAllFields'));
       return;
     }
     setLoading(true);
@@ -45,7 +47,7 @@ export default function Auth() {
     });
 
     if (error) setErrorMessage(error.message);
-    if (!session && !error) Alert.alert('Please check your inbox for email verification!');
+    if (!session && !error) Alert.alert(t('auth.pleaseCheckInbox'));
     setLoading(false);
   }
 
@@ -68,7 +70,7 @@ export default function Auth() {
             style={styles.input}
             onChangeText={setEmail}
             value={email}
-            placeholder="Email"
+            placeholder={t('auth.email')}
             placeholderTextColor={palette.teal}
             autoCapitalize="none"
             keyboardType="email-address"
@@ -84,7 +86,7 @@ export default function Auth() {
             onChangeText={setPassword}
             value={password}
             secureTextEntry
-            placeholder="Password"
+            placeholder={t('auth.password')}
             placeholderTextColor={palette.teal}
             autoCapitalize="none"
           />
@@ -94,7 +96,7 @@ export default function Auth() {
       <View style={[styles.buttonContainer, styles.mt20]}>
         <ThemedButton
           type="primary"
-          title="Sign in"
+          title={t('auth.signIn')}
           disabled={loading}
           onPress={signInWithEmail}
         />
@@ -104,7 +106,7 @@ export default function Auth() {
         <ThemedButton
           type="secondary"
           variant="outlined"
-          title="Sign up"
+          title={t('auth.signUp')}
           disabled={loading}
           onPress={signUpWithEmail}
         />
@@ -113,7 +115,7 @@ export default function Auth() {
       <View style={[styles.buttonContainer, styles.mt20]}>
         <ThemedButton
           type="accent"
-          title="Continue with Google"
+          title={t('auth.continueWithGoogle')}
           disabled={loading}
           onPress={signUpWithGoogle}
         />

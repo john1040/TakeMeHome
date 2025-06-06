@@ -6,9 +6,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { palette } from '@/constants/Colors';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function App() {
   const { session, isLoading, error } = useAuth();
+  const { t } = useTranslation();
 
   // Animation for gradient transition
   const animatedValue = useRef(new Animated.Value(0)).current;
@@ -51,9 +53,9 @@ export default function App() {
   if (error) {
     return (
       <ThemedView style={styles.container} variant="surface">
-        <ThemedText type="heading" style={styles.errorTitle}>Oops!</ThemedText>
+        <ThemedText type="heading" style={styles.errorTitle}>{t('auth.oops')}</ThemedText>
         <ThemedText style={styles.errorText}>
-          Something went wrong: {error.message}
+          {error.message}
         </ThemedText>
       </ThemedView>
     );
@@ -75,10 +77,10 @@ export default function App() {
               resizeMode="contain"
             />
             <ThemedText type="title" style={styles.welcomeText}>
-              Welcome Back
+              {t('auth.welcomeBack')}
             </ThemedText>
             <ThemedText type="caption" style={styles.subtitleText}>
-              Sign in to continue
+              {t('auth.signInToContinue')}
             </ThemedText>
           </View>
           <View style={styles.authContainer}>

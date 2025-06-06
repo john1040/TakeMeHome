@@ -11,11 +11,14 @@ import { ThemedText } from '@/components/ThemedText';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useTranslation } from '@/hooks/useTranslation';
+import LanguageSelector from '@/components/LanguageSelector';
 
 export default function SettingsScreen() {
   const { userProfile } = useAuth();
   const queryClient = useQueryClient();
   const colorScheme = useColorScheme();
+  const { t } = useTranslation();
 
   const handleSignOut = async () => {
     try {
@@ -26,18 +29,18 @@ export default function SettingsScreen() {
       router.replace('/(auth)');
     } catch (error) {
       console.error('Error signing out:', error);
-      Alert.alert('Error', 'Failed to sign out. Please try again.');
+      Alert.alert(t('common.error'), t('settings.failedToSignOut'));
     }
   };
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      "Delete Account",
-      "Are you sure you want to delete your account? This action cannot be undone.",
+      t('settings.deleteAccountConfirmTitle'),
+      t('settings.deleteAccountConfirmMessage'),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t('settings.cancel'), style: "cancel" },
         {
-          text: "Delete",
+          text: t('settings.delete'),
           style: "destructive",
           onPress: async () => {
             try {
@@ -54,7 +57,7 @@ export default function SettingsScreen() {
               router.replace('/');
             } catch (error) {
               console.error("Error deleting account:", error);
-              Alert.alert("Error", "Failed to delete account. Please try again.");
+              Alert.alert(t('common.error'), t('settings.failedToDeleteAccount'));
             }
           }
         }
@@ -65,11 +68,11 @@ export default function SettingsScreen() {
   return (
     <ThemedView style={styles.container}>
       <ThemedView style={styles.header}>
-        <ThemedText type="title" style={styles.headerTitle}>設定</ThemedText>
+        <ThemedText type="title" style={styles.headerTitle}>{t('settings.settings')}</ThemedText>
       </ThemedView>
       
       <ThemedView style={styles.section}>
-        <ThemedText style={styles.sectionTitle}>帳號管理</ThemedText>
+        <ThemedText style={styles.sectionTitle}>{t('settings.accountManagement')}</ThemedText>
         
         <ThemedView style={styles.buttonContainer}>
           <ThemedView style={styles.buttonWrapper}>
@@ -82,7 +85,7 @@ export default function SettingsScreen() {
             <ThemedButton
               type='default'
               onPress={handleSignOut}
-              title='登出'
+              title={t('settings.signOut')}
             />
           </ThemedView>
           
@@ -96,14 +99,18 @@ export default function SettingsScreen() {
             <ThemedButton
               type='error'
               onPress={handleDeleteAccount}
-              title='刪除帳號'
+              title={t('settings.deleteAccount')}
             />
           </ThemedView>
         </ThemedView>
       </ThemedView>
 
+      <ThemedView style={styles.section}>
+        <LanguageSelector />
+      </ThemedView>
+
       <ThemedView style={styles.footer}>
-        <ThemedText style={styles.version}>版本 1.0.0</ThemedText>
+        <ThemedText style={styles.version}>{t('settings.version')}</ThemedText>
       </ThemedView>
     </ThemedView>
   );
