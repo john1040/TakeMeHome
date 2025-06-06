@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Dimensions, Image } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -10,17 +10,31 @@ import ThemedButton from '@/components/ThemeButton';
 import { Alert } from 'react-native';
 import { Colors, palette } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useQuery } from '@tanstack/react-query';
+
+const { width } = Dimensions.get('window');
+const ITEM_SIZE = (width - 48) / 3; // 16px padding + 4px margin per item * 3 items
+
+// Helper function to generate optimized thumbnail URLs
+const getThumbnailUrl = (originalUrl: string, size: number = 200) => {
+  if (!originalUrl) return '';
+  // Add Supabase image transformation parameters
+  return `${originalUrl}?width=${size}&height=${size}&resize=cover&quality=80`;
+};
 
 const PostImage = React.memo(({ uri }: { uri: string }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const colorScheme = useColorScheme();
+  
+  const thumbnailUri = getThumbnailUrl(uri, Math.round(ITEM_SIZE * 2)); // 2x for retina displays
 
   return (
     <ThemedView style={styles.postImageContainer}>
       <Image
-        source={{ uri }}
+        source={{ uri: thumbnailUri }}
         style={styles.postImage}
+        resizeMode="cover"
         onLoadStart={() => setIsLoading(true)}
         onLoadEnd={() => setIsLoading(false)}
         onError={() => setHasError(true)}
@@ -40,32 +54,47 @@ const PostImage = React.memo(({ uri }: { uri: string }) => {
   );
 });
 
+// Fetch user posts function
+const fetchUserPosts = async (userId: string | undefined) => {
+  if (!userId) throw new Error('User ID is required');
+  
+  const { data, error } = await supabase
+    .from('post')
+    .select('id, image:image(url)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data as { id: number; image: { url: string }[] }[];
+};
+
 export default function ProfileScreen() {
   const { userProfile } = useAuth();
   const colorScheme = useColorScheme();
-  const [posts, setPosts] = useState<{ id: number; image: { url: string }[] }[]>([]);
 
-  useEffect(() => {
-    if (userProfile?.id) {
-      fetchPosts();
-    }
-  }, [userProfile]);
+  // Use React Query for data fetching with caching
+  const {
+    data: posts = [],
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['user-posts', userProfile?.id],
+    queryFn: () => fetchUserPosts(userProfile?.id),
+    enabled: !!userProfile?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime)
+    retry: 2,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
 
-  const fetchPosts = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('post')
-        .select('id, image:image(url)')
-        .eq('user_id', userProfile?.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setPosts(data);
-    } catch (error) {
+  // Handle query error
+  React.useEffect(() => {
+    if (error) {
       console.error('Error fetching posts:', error);
       Alert.alert('Error', 'Failed to load posts. Please try again.');
     }
-  }, [userProfile]);
+  }, [error]);
 
   const handlePostPress = (postId: number) => {
     console.log('Post Pressed', postId);
@@ -99,10 +128,29 @@ export default function ProfileScreen() {
         numColumns={3}
         contentContainerStyle={styles.postsContainer}
         showsVerticalScrollIndicator={false}
+        // Performance optimizations
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={9} // 3 rows at a time
+        windowSize={10}
+        initialNumToRender={9}
+        updateCellsBatchingPeriod={50}
+        getItemLayout={(data, index) => ({
+          length: ITEM_SIZE + 8, // item height + margin
+          offset: (ITEM_SIZE + 8) * Math.floor(index / 3),
+          index,
+        })}
+        refreshing={isLoading}
+        onRefresh={refetch}
         ListEmptyComponent={() => (
           <ThemedView style={styles.emptyState}>
-            <Ionicons name="images-outline" size={48} color={Colors[colorScheme ?? 'light'].icon} />
-            <ThemedText style={styles.emptyStateText}>No posts yet</ThemedText>
+            {isLoading ? (
+              <ActivityIndicator size="large" color={Colors[colorScheme ?? 'light'].primary} />
+            ) : (
+              <>
+                <Ionicons name="images-outline" size={48} color={Colors[colorScheme ?? 'light'].icon} />
+                <ThemedText style={styles.emptyStateText}>No posts yet</ThemedText>
+              </>
+            )}
           </ThemedView>
         )}
       />
@@ -140,9 +188,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   postItem: {
-    flex: 1,
+    width: ITEM_SIZE,
+    height: ITEM_SIZE,
     margin: 4,
-    aspectRatio: 1,
   },
   postImageContainer: {
     width: '100%',
