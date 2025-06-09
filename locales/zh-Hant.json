@@ -9,7 +9,13 @@
     "continueWithGoogle": "使用 Google 繼續",
     "pleaseCheckInbox": "請檢查您的信箱以進行電子郵件驗證！",
     "pleaseFillAllFields": "請填入所有欄位",
-    "oops": "糟糕！"
+    "oops": "糟糕！",
+    "failedToSignInWithGoogle": "Google 登入失敗",
+    "failedToSignInWithApple": "Apple 登入失敗",
+    "failedToFetchUserProfile": "無法取得使用者資料",
+    "unableToRetrieveEmailFromApple": "無法從 Apple 取得電子郵件",
+    "playServicesNotAvailable": "Play 服務無法使用或已過時",
+    "unexpectedErrorOccurred": "發生未預期的錯誤"
   },
   "profile": {
     "posts": "貼文",
@@ -60,6 +66,8 @@
     "signOut": "登出",
     "deleteAccount": "刪除帳戶",
     "accountManagement": "帳號管理",
+    "languageAndRegion": "語言與地區",
+    "manageAccountAndPreferences": "管理您的帳戶和偏好設定",
     "version": "版本 1.0.0",
     "deleteAccountConfirmTitle": "刪除帳戶",
     "deleteAccountConfirmMessage": "您確定要刪除您的帳戶嗎？此操作無法復原。",

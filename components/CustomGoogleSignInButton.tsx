@@ -1,12 +1,14 @@
 
 import React from 'react';
 import { TouchableOpacity, Text, Image, StyleSheet, View } from 'react-native';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface CustomGoogleSignInButtonProps {
   onPress: () => void;
 }
 
 const CustomGoogleSignInButton: React.FC<CustomGoogleSignInButtonProps> = ({ onPress }) => {
+  const { t } = useTranslation();
   return (
     <TouchableOpacity style={styles.button} onPress={onPress}>
       <View style={styles.contentContainer}>
@@ -14,7 +16,7 @@ const CustomGoogleSignInButton: React.FC<CustomGoogleSignInButtonProps> = ({ onP
           source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }}
           style={styles.logo}
         />
-        <Text style={styles.text}>Sign in with Google</Text>
+        <Text style={styles.text}>{t('auth.continueWithGoogle')}</Text>
       </View>
     </TouchableOpacity>
   );

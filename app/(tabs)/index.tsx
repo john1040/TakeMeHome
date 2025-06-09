@@ -114,10 +114,10 @@ export default function PostFeed() {
   const posts = data?.pages.flatMap(page => page.posts) ?? [];
 
   const renderItem = useCallback(({ item }: { item: Post }) => (
-    <PostItem 
-      post={item} 
-      userId={userId} 
-      showDelete={item.user_id === userId}
+    <PostItem
+      post={item}
+      userId={userId}
+      showDelete={false}
       onDelete={() => refetch()}
     />
   ), [userId]);

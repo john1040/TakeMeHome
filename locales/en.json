@@ -9,7 +9,13 @@
     "continueWithGoogle": "Continue with Google",
     "pleaseCheckInbox": "Please check your inbox for email verification!",
     "pleaseFillAllFields": "Please fill in all fields",
-    "oops": "Oops!"
+    "oops": "Oops!",
+    "failedToSignInWithGoogle": "Failed to sign in with Google",
+    "failedToSignInWithApple": "Failed to sign in with Apple",
+    "failedToFetchUserProfile": "Failed to fetch user profile",
+    "unableToRetrieveEmailFromApple": "Unable to retrieve email from Apple",
+    "playServicesNotAvailable": "Play services not available or outdated",
+    "unexpectedErrorOccurred": "An unexpected error occurred"
   },
   "profile": {
     "posts": "Posts",
@@ -60,6 +66,8 @@
     "signOut": "Sign Out",
     "deleteAccount": "Delete Account",
     "accountManagement": "Account Management",
+    "languageAndRegion": "Language & Region",
+    "manageAccountAndPreferences": "Manage your account and preferences",
     "version": "Version 1.0.0",
     "deleteAccountConfirmTitle": "Delete Account",
     "deleteAccountConfirmMessage": "Are you sure you want to delete your account? This action cannot be undone.",

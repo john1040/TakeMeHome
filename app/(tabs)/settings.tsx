@@ -76,7 +76,7 @@ export default function SettingsScreen() {
             {t('settings.settings')}
           </ThemedText>
           <ThemedText style={styles.headerSubtitle}>
-            Manage your account and preferences
+            {t('settings.manageAccountAndPreferences')}
           </ThemedText>
         </ThemedView>
 
@@ -167,7 +167,7 @@ export default function SettingsScreen() {
               size={20}
               color={Colors[colorScheme ?? 'light'].primary}
             />
-            <ThemedText style={styles.cardTitle}>Language & Region</ThemedText>
+            <ThemedText style={styles.cardTitle}>{t('settings.languageAndRegion')}</ThemedText>
           </View>
           
           <View style={styles.cardContent}>
@@ -231,6 +231,7 @@ const styles = StyleSheet.create({
   // Card Styles
   card: {
     borderRadius: 16,
+    backgroundColor: '#ffffff',
     marginBottom: 20,
     borderWidth: 1,
     shadowColor: '#000',

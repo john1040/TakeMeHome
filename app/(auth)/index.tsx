@@ -105,6 +105,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     width: '100%',
     borderRadius: 20,
+    backgroundColor: '#ffffff',
     overflow: 'hidden',
     padding: 24,
     marginTop: 40,

@@ -9,8 +9,10 @@ import { Alert, StyleSheet, View, Platform } from 'react-native'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'expo-router'
 import CustomGoogleSignInButton from './CustomGoogleSignInButton'
+import { useTranslation } from '@/hooks/useTranslation'
 
 export default function Auth() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   GoogleSignin.configure({
@@ -32,7 +34,7 @@ export default function Auth() {
 
         if (authError) {
           console.error('Error signing in with Google:', authError)
-          Alert.alert('Error', 'Failed to sign in with Google')
+          Alert.alert(t('common.error'), t('auth.failedToSignInWithGoogle'))
           return
         }
 
@@ -47,7 +49,7 @@ export default function Auth() {
 
         if (profileError && profileError.code !== 'PGRST116') {
           console.error('Error fetching profile:', profileError)
-          Alert.alert('Error', 'Failed to fetch user profile')
+          Alert.alert(t('common.error'), t('auth.failedToFetchUserProfile'))
           return
         }
 
@@ -70,10 +72,10 @@ export default function Auth() {
       } else if (error.code === statusCodes.IN_PROGRESS) {
         console.log('Sign in already in progress')
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        Alert.alert('Error', 'Play services not available or outdated')
+        Alert.alert(t('common.error'), t('auth.playServicesNotAvailable'))
       } else {
         console.error('Unexpected error during Google sign in:', error)
-        Alert.alert('Error', 'An unexpected error occurred')
+        Alert.alert(t('common.error'), t('auth.unexpectedErrorOccurred'))
       }
     }
   }
@@ -95,7 +97,7 @@ export default function Auth() {
 
         if (authError) {
           console.error('Error signing in with Apple:', authError)
-          Alert.alert('Error', 'Failed to sign in with Apple')
+          Alert.alert(t('common.error'), t('auth.failedToSignInWithApple'))
           return
         }
 
@@ -105,7 +107,7 @@ export default function Auth() {
         const email = credential.email || authData.user?.email
 
         if (!email) {
-          Alert.alert('Error', 'Unable to retrieve email from Apple')
+          Alert.alert(t('common.error'), t('auth.unableToRetrieveEmailFromApple'))
           return
         }
 
@@ -118,7 +120,7 @@ export default function Auth() {
 
         if (profileError && profileError.code !== 'PGRST116') {
           console.error('Error fetching profile:', profileError)
-          Alert.alert('Error', 'Failed to fetch user profile')
+          Alert.alert(t('common.error'), t('auth.failedToFetchUserProfile'))
           return
         }
 
@@ -140,7 +142,7 @@ export default function Auth() {
         console.log('Apple Sign in cancelled')
       } else {
         console.error('Unexpected error during Apple sign in:', error)
-        Alert.alert('Error', 'An unexpected error occurred')
+        Alert.alert(t('common.error'), t('auth.unexpectedErrorOccurred'))
       }
     }
   }

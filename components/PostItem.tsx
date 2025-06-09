@@ -19,6 +19,7 @@ const createStyles = () => StyleSheet.create({
   container: {
     marginBottom: 16,
     borderRadius: 12,
+    backgroundColor: '#ffffff',
     elevation: 2,
     shadowColor: palette.carbon,
     shadowOffset: {

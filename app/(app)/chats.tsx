@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'expo-router';
@@ -7,7 +8,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { MessageCircle } from 'lucide-react-native';
+import { MessageCircle, ArrowLeft } from 'lucide-react-native';
 
 interface DatabaseMessage {
   content: string;
@@ -142,9 +143,15 @@ export default function Chats() {
   );
 
   return (
-    <ThemedView style={styles.container}>
+    <SafeAreaView style={styles.safeContainer} edges={['top', 'bottom']}>
+      <ThemedView style={styles.container}>
       <ThemedView style={styles.header}>
-        <ThemedText style={styles.headerText}>聊天室</ThemedText>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <ArrowLeft size={24} color={Colors[colorScheme ?? 'light'].text} />
+        </TouchableOpacity>
+        <ThemedView style={styles.headerContent}>
+          <ThemedText style={styles.headerText}>聊天室</ThemedText>
+        </ThemedView>
       </ThemedView>
       
       {isLoading ? (
@@ -169,11 +176,15 @@ export default function Chats() {
           )}
         />
       )}
-    </ThemedView>
+      </ThemedView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -196,9 +207,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: Colors.light.border + '40',
+  },
+  backButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  headerContent: {
+    flex: 1,
   },
   headerText: {
     fontSize: 24,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TextInput, FlatList, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -144,6 +145,8 @@ export default function Chat() {
           styles.messageContainer,
           isOwnMessage ? styles.ownMessage : styles.otherMessage
         ]}
+        lightColor="transparent"
+        darkColor="transparent"
       >
         <ThemedView
           style={[
@@ -166,11 +169,12 @@ export default function Chat() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-      keyboardVerticalOffset={100}
-    >
+    <SafeAreaView style={styles.safeContainer} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+        keyboardVerticalOffset={0}
+      >
       <ThemedView style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color={Colors[colorScheme ?? 'light'].text} />
@@ -237,10 +241,14 @@ export default function Chat() {
         </TouchableOpacity>
       </ThemedView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
