@@ -7,10 +7,18 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { palette } from '@/constants/Colors';
 import { useTranslation } from '@/hooks/useTranslation';
+import { Button } from '@rneui/themed';
+import { useRouter } from 'expo-router';
 
 export default function App() {
   const { session, isLoading, error } = useAuth();
   const { t } = useTranslation();
+  const router = useRouter();
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
+  const navigateToPhoneVerification = () => {
+    router.push('/PhoneVerification');
+  };
 
   // Animation for gradient transition
   const animatedValue = useRef(new Animated.Value(0)).current;
@@ -85,6 +93,14 @@ export default function App() {
           </View>
           <View style={styles.authContainer}>
             <Auth />
+            {isDevelopment && (
+              <Button
+                title="🧪 Test Phone Verification"
+                onPress={navigateToPhoneVerification}
+                buttonStyle={styles.devButton}
+                titleStyle={styles.devButtonText}
+              />
+            )}
           </View>
         </ThemedView>
       </LinearGradient>
@@ -163,5 +179,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+  },
+  devButton: {
+    backgroundColor: '#FF6B35',
+    borderRadius: 8,
+    marginTop: 16,
+    paddingHorizontal: 20,
+  },
+  devButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
   },
 });

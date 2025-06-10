@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Alert, StyleSheet, View, Text, TextInput, Dimensions, Platform } from 'react-native'
+import { Alert, StyleSheet, View, Text, TextInput, Dimensions, Platform, TouchableOpacity, ActionSheetIOS } from 'react-native'
 import { supabase } from '@/lib/supabase'
 import { Button, Input } from '@rneui/themed'
-import { Picker } from '@react-native-picker/picker'
 import { useRouter } from 'expo-router'
 import { ThemedView } from '@/components/ThemedView'
 import { ThemedText } from '@/components/ThemedText'
 import Constants from 'expo-constants'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MaterialIcons } from '@expo/vector-icons'
+import { Colors } from '@/constants/Colors'
+import { useColorScheme } from '@/hooks/useColorScheme'
+import { Stack } from 'expo-router'
 
 // Development mode flag - set this to true during development
 const isDevelopment = process.env.NODE_ENV === 'development'
@@ -23,8 +25,8 @@ const OTP_EXPIRATION_TIME = 5 * 60;
 const MAX_OTP_REQUESTS_PER_HOUR = 5;
 
 const countryCodeOptions = [
-  { label: 'Taiwan (+886)', value: '+886' },
-  { label: 'USA/Canada (+1)', value: '+1' },
+  { label: 'Taiwan (+886)', value: '+886', flag: '🇹🇼' },
+  { label: 'USA/Canada (+1)', value: '+1', flag: '🇺🇸' },
 ];
 
 export default function PhoneVerification() {
@@ -37,8 +39,47 @@ export default function PhoneVerification() {
     const router = useRouter()
     const insets = useSafeAreaInsets()
     const screenWidth = Dimensions.get('window').width
+    const colorScheme = useColorScheme()
+    const theme = Colors[colorScheme ?? 'light']
 
     const otpInputs = useRef<Array<TextInput | null>>([])
+
+    const showCountryPicker = () => {
+      const options = countryCodeOptions.map(option => option.label)
+      
+      if (Platform.OS === 'ios') {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options: ['Cancel', ...options],
+            cancelButtonIndex: 0,
+            title: 'Select Country Code'
+          },
+          (buttonIndex) => {
+            if (buttonIndex > 0) {
+              const selectedOption = countryCodeOptions[buttonIndex - 1]
+              setCountryCode(selectedOption.value)
+            }
+          }
+        )
+      } else {
+        Alert.alert(
+          'Select Country Code',
+          '',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            ...countryCodeOptions.map(option => ({
+              text: option.label,
+              onPress: () => setCountryCode(option.value)
+            }))
+          ]
+        )
+      }
+    }
+
+    const getSelectedCountryLabel = () => {
+      const selected = countryCodeOptions.find(option => option.value === countryCode)
+      return selected ? `${selected.flag} ${selected.value}` : countryCode
+    }
   
     useEffect(() => {
       async function getUserId() {
@@ -240,76 +281,81 @@ export default function PhoneVerification() {
   
 
   return (
-    <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.content}>
-        {/* Header Section */}
-        <View style={styles.headerSection}>
-          <ThemedText type="title" style={styles.title}>驗證手機號碼</ThemedText>
-          <ThemedText type="default" style={styles.subtitle}>
-            我們將發送驗證碼到您的手機
-          </ThemedText>
-        </View>
+    <>
+      <Stack.Screen
+        options={{
+          headerShown: false
+        }}
+      />
+      <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.content}>
+          {/* Back Button */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.replace('/')}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="arrow-back" size={24} color={theme.text} />
+            <Text style={[styles.backButtonText, { color: theme.text }]}>返回</Text>
+          </TouchableOpacity>
+
+          {/* Header Section */}
+          <View style={styles.headerSection}>
+            <ThemedText type="title" style={styles.title}>驗證手機號碼</ThemedText>
+            <ThemedText type="default" style={styles.subtitle}>
+              我們將發送驗證碼到您的手機
+            </ThemedText>
+          </View>
 
         {/* Phone Input Section */}
         <View style={styles.phoneSection}>
           <View style={styles.phoneInputContainer}>
-            <View style={styles.countryCodeContainer}>
-              <Picker
-                selectedValue={countryCode}
-                onValueChange={(itemValue) => {
-                  console.log('Picker value changed:', itemValue);
-                  setCountryCode(itemValue);
-                }}
-                style={[
-                  styles.countryCodePicker,
-                  Platform.select({
-                    ios: { height: 50, fontSize: 16 },
-                    android: { height: 50, color: '#333' }
-                  })
-                ]}
-                mode={Platform.OS === 'android' ? 'dialog' : 'dropdown'}
-              >
-                {countryCodeOptions.map((option) => (
-                  <Picker.Item 
-                    key={option.value} 
-                    label={option.label} 
-                    value={option.value}
-                    color="#333"
-                  />
-                ))}
-              </Picker>
-            </View>
+            <TouchableOpacity
+              style={[styles.countryCodeContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}
+              onPress={showCountryPicker}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.countryCodeText, { color: theme.text }]}>
+                {getSelectedCountryLabel()}
+              </Text>
+              <MaterialIcons name="keyboard-arrow-down" size={20} color={theme.icon} />
+            </TouchableOpacity>
             <View style={styles.phoneNumberInputWrapper}>
               <Input
                 placeholder="手機號碼"
+                placeholderTextColor={theme.disabled}
                 keyboardType="phone-pad"
                 onChangeText={setPhoneNumber}
                 value={phoneNumber}
                 containerStyle={styles.phoneNumberInput}
-                inputContainerStyle={styles.phoneNumberInputInner}
+                inputContainerStyle={[styles.phoneNumberInputInner, {
+                  borderColor: theme.border,
+                  backgroundColor: theme.surface
+                }]}
+                inputStyle={{ color: theme.text }}
                 leftIcon={
-                  <MaterialIcons name="phone" size={24} color="#666" />
+                  <MaterialIcons name="phone" size={24} color={theme.icon} />
                 }
               />
             </View>
           </View>
 
-          <Button 
+          <Button
             title={showOtpInput ? "重新發送驗證碼" : "發送驗證碼"}
-            disabled={loading || !phoneNumber} 
+            disabled={loading || !phoneNumber}
             onPress={sendVerificationCode}
-            buttonStyle={styles.sendButton}
-            disabledStyle={styles.disabledButton}
-            titleStyle={styles.buttonText}
+            buttonStyle={[styles.sendButton, { backgroundColor: theme.primary }]}
+            disabledStyle={[styles.disabledButton, { backgroundColor: theme.disabled }]}
+            titleStyle={[styles.buttonText, { color: theme.background }]}
             loading={loading}
-            loadingProps={{ color: '#FFF' }}
+            loadingProps={{ color: theme.background }}
           />
         </View>
 
         {/* OTP Input Section */}
         {showOtpInput && (
           <View style={styles.otpSection}>
-            <ThemedText type="default" style={styles.otpInstructions}>
+            <ThemedText type="default" style={[styles.otpInstructions, { color: theme.text }]}>
               請輸入驗證碼
             </ThemedText>
             <View style={styles.otpContainer}>
@@ -318,8 +364,19 @@ export default function PhoneVerification() {
                   key={index}
                   style={[
                     styles.otpInput,
-                    digit ? styles.otpInputFilled : null,
-                    otpInputs.current[index]?.isFocused() ? styles.otpInputFocused : null
+                    {
+                      borderColor: theme.border,
+                      backgroundColor: theme.surface,
+                      color: theme.text
+                    },
+                    digit ? [styles.otpInputFilled, {
+                      borderColor: theme.primary,
+                      backgroundColor: theme.background
+                    }] : null,
+                    otpInputs.current[index]?.isFocused() ? [styles.otpInputFocused, {
+                      borderColor: theme.accent,
+                      backgroundColor: theme.background
+                    }] : null
                   ]}
                   value={digit}
                   onChangeText={(text) => handleOtpChange(text, index)}
@@ -335,20 +392,21 @@ export default function PhoneVerification() {
               ))}
             </View>
 
-            <Button 
+            <Button
               title="確認驗證碼"
-              disabled={loading || otp.some(digit => digit === '')} 
+              disabled={loading || otp.some(digit => digit === '')}
               onPress={verifyPhoneNumber}
-              buttonStyle={styles.verifyButton}
-              disabledStyle={styles.disabledButton}
-              titleStyle={styles.buttonText}
+              buttonStyle={[styles.verifyButton, { backgroundColor: theme.accent }]}
+              disabledStyle={[styles.disabledButton, { backgroundColor: theme.disabled }]}
+              titleStyle={[styles.buttonText, { color: theme.background }]}
               loading={loading}
-              loadingProps={{ color: '#FFF' }}
+              loadingProps={{ color: theme.background }}
             />
           </View>
         )}
-      </View>
-    </ThemedView>
+        </View>
+      </ThemedView>
+    </>
   )
 }
 
@@ -359,6 +417,18 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 24,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingVertical: 8,
+    alignSelf: 'flex-start',
+  },
+  backButtonText: {
+    fontSize: 16,
+    marginLeft: 8,
+    fontWeight: '500',
   },
   headerSection: {
     marginBottom: 32,
@@ -373,27 +443,30 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    color: '#666',
   },
   phoneSection: {
-    marginBottom: 32,
+    marginBottom: 48,
   },
   phoneInputContainer: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: 24,
     alignItems: 'flex-start',
   },
   countryCodeContainer: {
     width: 150,
     height: 50,
     marginRight: 12,
-    borderRadius: 8,
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
   },
-  countryCodePicker: {
-    height: 50,
-    width: '100%',
+  countryCodeText: {
+    fontSize: 16,
+    fontWeight: '500',
+    flex: 1,
   },
   phoneNumberInputWrapper: {
     flex: 1,
@@ -402,27 +475,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   phoneNumberInputInner: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
+    borderWidth: 1.5,
+    borderRadius: 12,
     paddingHorizontal: 12,
     height: 50,
-    backgroundColor: '#f5f5f5',
   },
   sendButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
+    borderRadius: 12,
     height: 50,
   },
   verifyButton: {
-    backgroundColor: '#34C759',
-    borderRadius: 8,
+    borderRadius: 12,
     height: 50,
     marginTop: 24,
   },
   disabledButton: {
-    backgroundColor: '#ccc',
-    opacity: 0.8,
+    opacity: 0.6,
   },
   buttonText: {
     fontSize: 16,
@@ -435,7 +503,6 @@ const styles = StyleSheet.create({
   otpInstructions: {
     fontSize: 16,
     marginBottom: 16,
-    color: '#666',
   },
   otpContainer: {
     flexDirection: 'row',
@@ -444,23 +511,18 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   otpInput: {
-    width: 45,
-    height: 55,
-    borderWidth: 1.5,
-    borderColor: '#ddd',
-    borderRadius: 12,
+    width: 50,
+    height: 60,
+    borderWidth: 2,
+    borderRadius: 16,
     textAlign: 'center',
     fontSize: 24,
     fontWeight: '600',
-    backgroundColor: '#f5f5f5',
   },
   otpInputFilled: {
-    borderColor: '#007AFF',
-    backgroundColor: '#FFF',
+    borderWidth: 2,
   },
   otpInputFocused: {
-    borderColor: '#007AFF',
-    borderWidth: 2,
-    backgroundColor: '#FFF',
+    borderWidth: 3,
   },
 });

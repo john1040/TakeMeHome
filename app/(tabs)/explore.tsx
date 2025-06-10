@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { palette } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const CATEGORIES = ['all', 'desks', 'chairs', 'others'] as const;
 type Category = typeof CATEGORIES[number];
@@ -35,6 +36,7 @@ interface LocationData {
 }
 
 export default function MapViewPosts({ userId }: { userId: string }) {
+  const { t } = useTranslation();
   const [posts, setPosts] = useState<LocationData[]>([]);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
@@ -195,7 +197,7 @@ export default function MapViewPosts({ userId }: { userId: string }) {
                 selectedCategory === category && styles.filterButtonTextActive
               ]}
             >
-              {category.charAt(0).toUpperCase() + category.slice(1)}
+              {t(`categories.${category}`)}
             </ThemedText>
           </TouchableOpacity>
         ))}

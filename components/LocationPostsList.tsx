@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { FlashList } from "@shopify/flash-list";
+import { useTranslation } from '@/hooks/useTranslation';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.8;
@@ -12,38 +13,41 @@ interface LocationPostsListProps {
   onClose: () => void;
 }
 
-const PostCard = memo(({ item, onPress }) => (
-  <TouchableOpacity 
-    style={styles.postCard}
-    onPress={onPress}
-  >
-    <Image 
-      source={{ 
-        uri: Array.isArray(item.image) ? item.image[0]?.url : item.image?.url,
-        cache: 'force-cache',
-        priority: 'high',
-      }}
-      style={styles.thumbnail}
-      resizeMode="cover"
-      loading="eager"
-    />
-    <View style={styles.postInfo}>
-      {item.category && (
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>
-            {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
-          </Text>
-        </View>
-      )}
-      <Text style={styles.description} numberOfLines={2}>
-        {item.description}
-      </Text>
-      <Text style={styles.date}>
-        {new Date(item.created_at).toLocaleDateString()}
-      </Text>
-    </View>
-  </TouchableOpacity>
-));
+const PostCard = memo(({ item, onPress }) => {
+  const { t } = useTranslation();
+  
+  return (
+    <TouchableOpacity
+      style={styles.postCard}
+      onPress={onPress}
+    >
+      <Image
+        source={{
+          uri: Array.isArray(item.image) ? item.image[0]?.url : item.image?.url,
+          cache: 'force-cache',
+        }}
+        style={styles.thumbnail}
+        resizeMode="cover"
+        loading="eager"
+      />
+      <View style={styles.postInfo}>
+        {item.category && (
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryText}>
+              {t(`categories.${item.category}`)}
+            </Text>
+          </View>
+        )}
+        <Text style={styles.description} numberOfLines={2}>
+          {item.description}
+        </Text>
+        <Text style={styles.date}>
+          {new Date(item.created_at).toLocaleDateString()}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+});
 
 const LocationPostsList: React.FC<LocationPostsListProps> = ({ posts, onPostSelect, onClose }) => {
   const renderItem = ({ item }) => (

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ThemedView } from './ThemedView';
 import { ThemedText } from './ThemedText';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -23,26 +23,55 @@ export const LanguageSelector: React.FC = () => {
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText style={styles.title}>{t('settings.language')}</ThemedText>
-      {languages.map((language) => (
+      {languages.map((language, index) => (
         <TouchableOpacity
           key={language.code}
           style={[
             styles.languageOption,
-            currentLang.startsWith(language.code) && styles.selectedOption,
+            { borderBottomColor: Colors[colorScheme ?? 'light'].border + '20' },
+            index === languages.length - 1 && styles.lastOption,
+            currentLang.startsWith(language.code) && [
+              styles.selectedOption,
+              { backgroundColor: Colors[colorScheme ?? 'light'].primary + '10' }
+            ],
           ]}
           onPress={() => handleLanguageChange(language.code)}
         >
-          <ThemedView style={styles.languageInfo}>
-            <ThemedText style={styles.languageName}>{language.nativeName}</ThemedText>
-            <ThemedText style={styles.languageSubtitle}>{language.name}</ThemedText>
-          </ThemedView>
+          <View style={styles.languageOptionLeft}>
+            <View style={[
+              styles.languageIconContainer,
+              { backgroundColor: Colors[colorScheme ?? 'light'].secondary + '20' }
+            ]}>
+              <Ionicons
+                name="language"
+                size={18}
+                color={Colors[colorScheme ?? 'light'].primary}
+              />
+            </View>
+            <View style={styles.languageInfo}>
+              <ThemedText style={[
+                styles.languageName,
+                currentLang.startsWith(language.code) && {
+                  color: Colors[colorScheme ?? 'light'].primary,
+                  fontWeight: '600'
+                }
+              ]}>
+                {language.nativeName}
+              </ThemedText>
+              <ThemedText style={styles.languageSubtitle}>{language.name}</ThemedText>
+            </View>
+          </View>
           {currentLang.startsWith(language.code) && (
-            <Ionicons
-              name="checkmark"
-              size={20}
-              color={Colors[colorScheme ?? 'light'].primary}
-            />
+            <View style={[
+              styles.checkmarkContainer,
+              { backgroundColor: Colors[colorScheme ?? 'light'].primary }
+            ]}>
+              <Ionicons
+                name="checkmark"
+                size={16}
+                color={Colors[colorScheme ?? 'light'].surface}
+              />
+            </View>
           )}
         </TouchableOpacity>
       ))}
@@ -52,25 +81,35 @@ export const LanguageSelector: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 16,
-    opacity: 0.7,
+    paddingTop: 0,
   },
   languageOption: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 0,
+    borderBottomWidth: 1,
+  },
+  lastOption: {
+    borderBottomWidth: 0,
   },
   selectedOption: {
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    borderRadius: 8,
+    marginHorizontal: -12,
+    paddingHorizontal: 12,
+  },
+  languageOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  languageIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   languageInfo: {
     flex: 1,
@@ -83,6 +122,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.6,
     marginTop: 2,
+  },
+  checkmarkContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

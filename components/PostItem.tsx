@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { palette } from '@/constants/Colors';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH / 3;
@@ -328,6 +329,7 @@ interface PostItemProps {
 }
 
 const PostItem = ({ post, userId, showDelete, onDelete }: PostItemProps): JSX.Element => {
+  const { t } = useTranslation();
   const router = useRouter();
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -588,7 +590,7 @@ const PostItem = ({ post, userId, showDelete, onDelete }: PostItemProps): JSX.El
         {post.category && (
           <ThemedView style={styles.categoryBadge}>
             <ThemedText type="caption" style={styles.categoryText}>
-              {post.category.charAt(0).toUpperCase() + post.category.slice(1)}
+              {t(`categories.${post.category}`)}
             </ThemedText>
           </ThemedView>
         )}

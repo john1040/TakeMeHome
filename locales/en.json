@@ -75,5 +75,11 @@
     "delete": "Delete",
     "failedToSignOut": "Failed to sign out. Please try again.",
     "failedToDeleteAccount": "Failed to delete account. Please try again."
+  },
+  "categories": {
+    "all": "All",
+    "desks": "Desks",
+    "chairs": "Chairs",
+    "others": "Others"
   }
 }

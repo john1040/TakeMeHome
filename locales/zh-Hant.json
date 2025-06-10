@@ -75,5 +75,11 @@
     "delete": "刪除",
     "failedToSignOut": "登出失敗。請重試。",
     "failedToDeleteAccount": "刪除帳戶失敗。請重試。"
+  },
+  "categories": {
+    "all": "全部",
+    "desks": "桌子",
+    "chairs": "椅子",
+    "others": "其他"
   }
 }

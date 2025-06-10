@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, StyleSheet, Text, Modal, SafeAreaView, Image, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
+import { View, TextInput, StyleSheet, Text, Modal, SafeAreaView, Image, ScrollView, Dimensions, TouchableOpacity, Alert } from 'react-native';
 import * as Location from 'expo-location';
 import MapView, { Marker } from 'react-native-maps';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AntDesign } from '@expo/vector-icons';
 import ThemedButton from '@/components/ThemeButton';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const CATEGORIES = ['desks', 'chairs', 'others'] as const;
 type Category = typeof CATEGORIES[number];
@@ -13,6 +14,7 @@ const { width } = Dimensions.get('window');
 const PREVIEW_SIZE = width / 4 - 10;
 
 export default function DescriptionLocation() {
+  const { t } = useTranslation();
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState(null);
   const [streetName, setStreetName] = useState('');
@@ -105,7 +107,7 @@ export default function DescriptionLocation() {
                 styles.categoryButtonText,
                 category === cat && styles.categoryButtonTextSelected
               ]}>
-                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                {t(`categories.${cat}`)}
               </Text>
             </TouchableOpacity>
           ))}
