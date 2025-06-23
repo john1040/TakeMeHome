@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = 'https://nkkaxelmylemiesxvmoz.supabase.co'
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ra2F4ZWxteWxlbWllc3h2bW96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjA0NDUzMjQsImV4cCI6MjAzNjAyMTMyNH0.ATsPbSxQFdtoEzEkNsqeNE885Op-RNOO5sWyUw8XP-4'
-const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ra2F4ZWxteWxlbWllc3h2bW96Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcyMDQ0NTMyNCwiZXhwIjoyMDM2MDIxMzI0fQ.OvzPV1ulJBlQVo7JQrNKQowpudLUVa096Z9euhkMaMY'
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
