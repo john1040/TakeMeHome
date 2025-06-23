@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     position: 'absolute',
-    top: 20,
+    top: Platform.OS === 'ios' ? 100 : 80,
     left: 16,
     right: 16,
     zIndex: 1,

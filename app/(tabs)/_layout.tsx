@@ -64,6 +64,17 @@ export default function TabLayout() {
         options={{
           title: t('navigation.explore'),
           tabBarIcon: ({ color, size }) => <Ionicons name="map" size={size} color={color} />,
+          headerTransparent: true,
+          headerStyle: {
+            backgroundColor: 'transparent',
+          },
+          headerTitle: () => (
+            <Image
+              source={require('@/assets/images/TMH_Logo.png')}
+              style={{ width: 100, height: 40 }}
+              resizeMode="contain"
+            />
+          ),
         }}
       />
       <Tabs.Screen
