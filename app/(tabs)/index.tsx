@@ -20,6 +20,7 @@ interface RawPost {
   street_name: string;
   user_id: string;
   category?: string;
+  availability_status?: string;
   image: { url: string }[];
   profiles: { username: string }[];
 }
@@ -89,6 +90,7 @@ export default function PostFeed() {
           street_name,
           user_id,
           category,
+          availability_status,
           image:image(url),
           profiles:profiles!post_user_id_fkey(username)
         `)

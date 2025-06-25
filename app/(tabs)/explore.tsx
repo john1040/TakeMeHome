@@ -24,6 +24,7 @@ interface Post {
   title: string;
   description: string;
   geolocation?: string;
+  availability_status?: string;
   image?: { url: string };
 }
 
@@ -82,7 +83,8 @@ export default function MapViewPosts({ userId }: { userId: string }) {
         .select(`
           *,
           image:image(url),
-          geolocation
+          geolocation,
+          availability_status
         `)
         .order('created_at', { ascending: false });
 

@@ -10,6 +10,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { palette } from '@/constants/Colors';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useQueryClient } from '@tanstack/react-query';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH / 3;
@@ -32,8 +33,8 @@ const createStyles = () => StyleSheet.create({
     padding: 16,
   },
   description: {
+    marginTop: 15,
     fontSize: 16,
-    marginBottom: 12,
     lineHeight: 24,
   },
   pagerView: {
@@ -223,6 +224,36 @@ const createStyles = () => StyleSheet.create({
     marginTop: 8,
     color: palette.teal,
   },
+  availabilityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  availabilityBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+  },
+  availableBadge: {
+    backgroundColor: `${palette.teal}10`,
+  },
+  takenBadge: {
+    backgroundColor: `${palette.gold}10`,
+  },
+  availabilityText: {
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  availableText: {
+    color: palette.teal,
+  },
+  takenText: {
+    color: palette.gold,
+  },
+  toggleButton: {
+    padding: 4,
+  },
 });
 
 const styles = createStyles();
@@ -319,6 +350,7 @@ interface PostItemProps {
     street_name: string;
     user_id: string;
     category?: string;
+    availability_status?: string;
     profiles?: {
       username: string;
     };
@@ -326,11 +358,13 @@ interface PostItemProps {
   userId: string | null;
   showDelete: boolean;
   onDelete: (postId: string) => void;
+  onUpdate?: () => void;
 }
 
-const PostItem = ({ post, userId, showDelete, onDelete }: PostItemProps): JSX.Element => {
+const PostItem = ({ post, userId, showDelete, onDelete, onUpdate }: PostItemProps): JSX.Element => {
   const { t } = useTranslation();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [images, setImages] = useState<string[]>([]);
@@ -341,6 +375,7 @@ const PostItem = ({ post, userId, showDelete, onDelete }: PostItemProps): JSX.El
   const { userProfile } = useAuth();
   const [showFullComments, setShowFullComments] = useState(false);
   const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
+  const [availabilityStatus, setAvailabilityStatus] = useState(post.availability_status || 'available');
 
   const handleAddComment = async () => {
     if (!userId || !newComment.trim()) return;
@@ -418,6 +453,36 @@ const PostItem = ({ post, userId, showDelete, onDelete }: PostItemProps): JSX.El
       });
     } catch (error) {
       console.error('Error sharing post:', error);
+    }
+  };
+
+  const handleToggleAvailability = async () => {
+    if (post.user_id !== userId) {
+      console.error('Unauthorized availability toggle attempt');
+      return;
+    }
+
+    const newStatus = availabilityStatus === 'available' ? 'taken' : 'available';
+    
+    try {
+      const { error } = await supabase
+        .from('post')
+        .update({ availability_status: newStatus })
+        .eq('id', post.id)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      setAvailabilityStatus(newStatus);
+      
+      // Invalidate React Query cache to ensure all screens refresh
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      
+      onUpdate?.(); // Call the update callback to refresh the parent component
+      
+    } catch (error) {
+      console.error('Error updating availability status:', error);
+      Alert.alert("Error", "Failed to update availability status. Please try again.");
     }
   };
 
@@ -580,6 +645,11 @@ const PostItem = ({ post, userId, showDelete, onDelete }: PostItemProps): JSX.El
     fetchComments();
   }, [userId, fetchLikeStatus, fetchLikeCount, fetchImages, fetchComments]);
 
+  // Sync local availability status with prop changes
+  useEffect(() => {
+    setAvailabilityStatus(post.availability_status || 'available');
+  }, [post.availability_status]);
+
   return (
     <ThemedView variant="surface" style={styles.container}>
       <View style={styles.header}>
@@ -596,7 +666,7 @@ const PostItem = ({ post, userId, showDelete, onDelete }: PostItemProps): JSX.El
         )}
       </View>
 
-      <ThemedText style={styles.description}>{post.description}</ThemedText>
+      
 
       {images.length > 0 && (
         <View>
@@ -620,9 +690,38 @@ const PostItem = ({ post, userId, showDelete, onDelete }: PostItemProps): JSX.El
         </View>
       )}
 
+      <ThemedText style={styles.description}>
+        {post.description}
+      </ThemedText>
+
       <ThemedText type="caption" style={styles.date}>
         {new Date(post.created_at).toLocaleString()}
       </ThemedText>
+
+      {/* Availability Status */}
+      <View style={styles.availabilityContainer}>
+        <View style={[
+          styles.availabilityBadge,
+          availabilityStatus === 'available' ? styles.availableBadge : styles.takenBadge
+        ]}>
+          <ThemedText style={[
+            styles.availabilityText,
+            availabilityStatus === 'available' ? styles.availableText : styles.takenText
+          ]}>
+            {availabilityStatus === 'available' ? 'Available' : 'Taken'}
+          </ThemedText>
+        </View>
+        {post.user_id === userId && showDelete && (
+          <TouchableOpacity onPress={handleToggleAvailability} style={styles.toggleButton}>
+            <ThemedText style={[
+              styles.availabilityText,
+              availabilityStatus === 'available' ? styles.takenText : styles.availableText
+            ]}>
+              Mark as {availabilityStatus === 'available' ? 'Taken' : 'Available'}
+            </ThemedText>
+          </TouchableOpacity>
+        )}
+      </View>
 
       <View style={styles.actionContainer}>
         <View style={styles.actionButtons}>
@@ -652,7 +751,7 @@ const PostItem = ({ post, userId, showDelete, onDelete }: PostItemProps): JSX.El
           </TouchableOpacity>
         )}
       </View>
-
+<ThemedText style={styles.description}>{post.description}</ThemedText>
       <View style={styles.commentsSection}>
         <ThemedText type="defaultSemiBold" style={styles.commentsHeader}>
           Comments

@@ -142,6 +142,7 @@ export default function ReviewSubmit() {
           geolocation: `POINT(${longitude} ${latitude})`,
           street_name: streetName,
           category: category,
+          availability_status: 'available',
         })
         .select();
         

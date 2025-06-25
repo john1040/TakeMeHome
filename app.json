@@ -2,23 +2,33 @@
   "expo": {
     "name": "TakeMeHome",
     "slug": "TakeMeHome",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/TMH_Logo_optimized.png",
     "scheme": "tmhapp",
     "userInterfaceStyle": "automatic",
-
     "ios": {
       "useAppleSignIn": true,
       "supportsTablet": true,
       "bundleIdentifier": "com.john1040.tmhapp",
       "infoPlist": {
-    "NSLocationWhenInUseUsageDescription": "This app needs access to location to select post locations."
-  },
-      "associatedDomains": ["applinks:yourapp.com"]
+        "NSLocationWhenInUseUsageDescription": "This app needs access to location to select post locations.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "associatedDomains": [
+        "applinks:yourapp.com",
+        "applinks:yourapp.com"
+      ]
     },
     "android": {
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -35,7 +45,10 @@
               "pathPrefix": "/post"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -70,7 +83,8 @@
           "backgroundColor": "#232323",
           "image": "./assets/images/TMH_Logo_optimized.png",
           "resizeMode": "contain",
-          "imageWidth": 100
+          "imageWidth": 100,
+          "enableRuntimeValidation": true
         }
       ],
       [

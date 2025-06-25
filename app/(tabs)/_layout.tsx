@@ -3,6 +3,7 @@ import { Tabs, useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme, Image } from 'react-native';
 import { useTranslation } from '@/hooks/useTranslation';
+import { Colors } from '@/constants/Colors';
 
 export default function TabLayout() {
   const router = useRouter();
@@ -28,6 +29,8 @@ export default function TabLayout() {
             resizeMode="contain"
           />
         ),
+        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tabIconSelected,
+        tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].tabIconDefault,
       }}
     >
       <Tabs.Screen

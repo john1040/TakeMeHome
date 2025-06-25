@@ -89,7 +89,12 @@ const SlidingPostView: React.FC<SlidingPostViewProps> = ({ post, userId, onClose
             <View style={styles.content}>
               <View style={styles.handle} />
               <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
-                <PostItem post={post} userId={userId} />
+                <PostItem
+                  post={post}
+                  userId={userId}
+                  showDelete={false}
+                  onDelete={() => {}}
+                />
               </ScrollView>
             </View>
           </TouchableWithoutFeedback>

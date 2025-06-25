@@ -10,13 +10,13 @@ phone_verified  boolean         bool
 
 post
 
-id                uuid          uuid
-user_id           uuid          uuid
-created_at        timestamp     timestamp
-updated_at        timestamp     timestamp
-title             text          text
-description       text          text
-category          text          text
-geolocation       geography     geography
-street_name       text          text
-category          text          text
+id                    uuid          uuid
+user_id               uuid          uuid
+created_at            timestamp     timestamp
+updated_at            timestamp     timestamp
+title                 text          text
+description           text          text
+category              text          text
+geolocation           geography     geography
+street_name           text          text
+availability_status   varchar(20)   varchar(20) DEFAULT 'available' CHECK (availability_status IN ('available', 'taken'))

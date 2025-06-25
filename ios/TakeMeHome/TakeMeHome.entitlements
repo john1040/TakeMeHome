@@ -9,6 +9,7 @@
     <key>com.apple.developer.associated-domains</key>
     <array>
       <string>applinks:yourapp.com</string>
+      <string>applinks:yourapp.com</string>
     </array>
   </dict>
 </plist>
