@@ -38,6 +38,9 @@
     "done": "完成",
     "close": "關閉"
   },
+  "loading": {
+    "posts": "載入貼文中..."
+  },
   "navigation": {
     "home": "首頁",
     "explore": "探索",

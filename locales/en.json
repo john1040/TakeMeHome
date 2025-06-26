@@ -38,6 +38,9 @@
     "done": "Done",
     "close": "Close"
   },
+  "loading": {
+    "posts": "Loading posts..."
+  },
   "navigation": {
     "home": "Home",
     "explore": "Explore",

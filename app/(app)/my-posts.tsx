@@ -17,6 +17,7 @@ interface Post {
   street_name: string;
   user_id: string;
   availability_status: string;
+  username: string;
   image?: { url: string }[];
 }
 
@@ -51,14 +52,21 @@ export default function MyPosts() {
           street_name,
           user_id,
           availability_status,
-          image:image(url)
+          image:image(url),
+          profiles:profiles!post_user_id_fkey(username)
         `)
         .eq('user_id', userProfile?.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      setPosts(data || []);
+      const posts = (data || []).map(post => ({
+        ...post,
+        username: post.profiles?.[0]?.username || userProfile?.username || 'Unknown User',
+        image: post.image || []
+      }));
+
+      setPosts(posts);
     } catch (error) {
       console.error('Error fetching posts:', error);
     } finally {

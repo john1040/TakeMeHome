@@ -49,6 +49,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   surface: {
+    backgroundColor: '#ffffff',
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: {

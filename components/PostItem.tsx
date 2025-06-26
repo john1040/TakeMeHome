@@ -351,9 +351,10 @@ interface PostItemProps {
     user_id: string;
     category?: string;
     availability_status?: string;
-    profiles?: {
-      username: string;
-    };
+    username: string;
+    likeCount?: number;
+    comments?: Comment[];
+    image?: { url: string }[];
   };
   userId: string | null;
   showDelete: boolean;
@@ -366,10 +367,10 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate }: PostItemProp
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
-  const [images, setImages] = useState<string[]>([]);
+  const [likeCount, setLikeCount] = useState(post.likeCount || 0);
+  const [images, setImages] = useState<string[]>(post.image?.map(img => img.url) || []);
   const [currentPage, setCurrentPage] = useState(0);
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<Comment[]>(post.comments || []);
   const [newComment, setNewComment] = useState('');
   const [showAllComments, setShowAllComments] = useState(false);
   const { userProfile } = useAuth();
@@ -438,7 +439,7 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate }: PostItemProp
       pathname: '/(app)/chat',
       params: {
         recipientId: post.user_id,
-        recipientUsername: post.profiles?.username
+        recipientUsername: post.username
       }
     });
   };
@@ -654,7 +655,7 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate }: PostItemProp
     <ThemedView variant="surface" style={styles.container}>
       <View style={styles.header}>
         <View style={styles.userInfo}>
-          <ThemedText type="subtitle" style={styles.username}>{post.profiles?.username}</ThemedText>
+          <ThemedText type="subtitle" style={styles.username}>{post.username}</ThemedText>
           <ThemedText type="caption" style={styles.location}>{post.street_name}</ThemedText>
         </View>
         {post.category && (
@@ -760,7 +761,7 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate }: PostItemProp
           <FlashList
             data={comments.slice(0, 2)}
             renderItem={renderComment}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item, index) => `${post.id}-comment-${item.id}-${index}`}
             estimatedItemSize={5}
           />
         </View>
@@ -802,7 +803,7 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate }: PostItemProp
           <FlashList
             data={comments}
             renderItem={renderComment}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item, index) => `${post.id}-fullcomment-${item.id}-${index}`}
             estimatedItemSize={5}
           />
           <View style={styles.addCommentContainer}>

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { FlatList, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
+import { FlatList, ActivityIndicator, StyleSheet, RefreshControl, View } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import PostItem from '@/components/PostItem';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
@@ -11,7 +11,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { palette } from '@/constants/Colors';
 
-const POSTS_PER_PAGE = 3;
+const POSTS_PER_PAGE = 10;
 
 interface RawPost {
   id: string;
@@ -55,7 +55,7 @@ export default function PostFeed() {
     });
   }, []);
 
-  // Query for user ID
+  // Query for user ID - runs in parallel with posts
   const { data: userData } = useQuery({
     queryKey: ['userId'],
     queryFn: async () => {
@@ -66,9 +66,10 @@ export default function PostFeed() {
       }
       return null;
     },
+    staleTime: 1000 * 60 * 5, // Consider user data fresh for 5 minutes
   });
 
-  // Query for posts with infinite loading
+  // Query for posts with infinite loading - runs immediately
   const {
     data,
     fetchNextPage,
@@ -81,36 +82,37 @@ export default function PostFeed() {
     queryKey: ['posts'],
     initialPageParam: 0,
     queryFn: async ({ pageParam = 0 }): Promise<PostResponse> => {
+      // Use the optimized view for maximum performance
       const { data, error } = await supabase
-        .from('post')
-        .select(`
-          id,
-          description,
-          created_at,
-          street_name,
-          user_id,
-          category,
-          availability_status,
-          image:image(url),
-          profiles:profiles!post_user_id_fkey(username)
-        `)
-        .order('created_at', { ascending: false })
+        .from('post_with_details')
+        .select('*')
         .range(pageParam * POSTS_PER_PAGE, (pageParam + 1) * POSTS_PER_PAGE - 1);
 
       if (error) throw error;
 
-      const posts = (data as RawPost[]).map(post => ({
+      const posts = (data || []).map(post => ({
         ...post,
-        username: post.profiles[0]?.username || 'Unknown User',
+        likeCount: post.like_count || 0,
+        comments: Array.isArray(post.comments) ? post.comments : [],
+        image: Array.isArray(post.image) ? post.image : []
       }));
 
       return {
         posts,
-        nextPage: data.length === POSTS_PER_PAGE ? pageParam + 1 : undefined,
+        nextPage: data && data.length === POSTS_PER_PAGE ? pageParam + 1 : undefined,
       };
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: !!userId,
+    staleTime: 1000 * 60 * 5, // Consider posts fresh for 5 minutes
+    gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false, // Don't refetch if data exists
+    // Prefetch next page aggressively for better UX
+    getPreviousPageParam: (firstPage, pages) => firstPage.nextPage ? pages.length - 1 : undefined,
+    // Enable background refetch for fresh data
+    refetchOnReconnect: true,
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const posts = data?.pages.flatMap(page => page.posts) ?? [];
@@ -118,11 +120,11 @@ export default function PostFeed() {
   const renderItem = useCallback(({ item }: { item: Post }) => (
     <PostItem
       post={item}
-      userId={userId}
+      userId={userId || ''} // Provide empty string fallback to prevent render delays
       showDelete={false}
       onDelete={() => refetch()}
     />
-  ), [userId]);
+  ), [userId, refetch]);
 
   const renderFooter = () => {
     if (!isFetchingNextPage) return null;
@@ -133,11 +135,11 @@ export default function PostFeed() {
     );
   };
 
-  const handleLoadMore = () => {
+  const handleLoadMore = useCallback(() => {
     if (!onEndReachedCalledDuringMomentum.current && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
-  };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const renderEmpty = () => (
     <ThemedView style={styles.emptyContainer} variant="surface">
@@ -150,12 +152,30 @@ export default function PostFeed() {
     </ThemedView>
   );
 
-  if (isLoading) {
-    return (
-      <ThemedView style={styles.loaderContainer} variant="surface">
-        <ActivityIndicator size="large" color={palette.teal} />
-      </ThemedView>
-    );
+  const renderLoadingSkeleton = () => (
+    <ThemedView style={styles.container} variant="surface">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <View key={`skeleton-${index}`} style={styles.skeletonCard}>
+          <View style={styles.skeletonHeader}>
+            <View style={styles.skeletonAvatar} />
+            <View style={styles.skeletonUserInfo}>
+              <View style={styles.skeletonUsername} />
+              <View style={styles.skeletonLocation} />
+            </View>
+          </View>
+          <View style={styles.skeletonImage} />
+          <View style={styles.skeletonText} />
+          <View style={styles.skeletonActions}>
+            <View style={styles.skeletonButton} />
+            <View style={styles.skeletonButton} />
+          </View>
+        </View>
+      ))}
+    </ThemedView>
+  );
+
+  if (isLoading && !data) {
+    return renderLoadingSkeleton();
   }
 
   return (
@@ -163,7 +183,7 @@ export default function PostFeed() {
       <FlatList
         data={posts}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => `${item.id}-${index}`}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}
@@ -179,6 +199,10 @@ export default function PostFeed() {
         }
         contentContainerStyle={styles.listContent}
         ItemSeparatorComponent={() => <ThemedView style={styles.separator} />}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={10}
       />
     </ThemedView>
   );
@@ -225,5 +249,70 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: `${palette.teal}20`,
     marginVertical: 8,
+  },
+  skeletonCard: {
+    marginBottom: 16,
+    borderRadius: 12,
+    padding: 16,
+    backgroundColor: '#ffffff',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  skeletonHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  skeletonAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#e0e0e0',
+  },
+  skeletonUserInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  skeletonUsername: {
+    height: 16,
+    width: '60%',
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  skeletonLocation: {
+    height: 12,
+    width: '40%',
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+  },
+  skeletonImage: {
+    height: 200,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  skeletonText: {
+    height: 16,
+    width: '80%',
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+    marginBottom: 12,
+  },
+  skeletonActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  skeletonButton: {
+    height: 32,
+    width: 80,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 16,
   },
 });
