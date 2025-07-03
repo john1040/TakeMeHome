@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, ScrollView, TouchableOpacity, View, Text } from 'react-native';
 import ThemedButton from '@/components/ThemeButton';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -13,10 +13,10 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useTranslation } from '@/hooks/useTranslation';
 import LanguageSelector from '@/components/LanguageSelector';
+import ProfileAvatar from '@/components/ProfileAvatar';
 
 export default function SettingsScreen() {
   const { userProfile } = useAuth();
-  console.log(userProfile)
   const queryClient = useQueryClient();
   const colorScheme = useColorScheme();
   const { t } = useTranslation();
@@ -66,6 +66,7 @@ export default function SettingsScreen() {
     );
   };
 
+
   return (
     <ThemedView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -83,13 +84,11 @@ export default function SettingsScreen() {
         {/* Profile Card */}
         <View style={[styles.card, { backgroundColor: Colors[colorScheme ?? 'light'].surface, borderColor: Colors[colorScheme ?? 'light'].border + '20' }]}>
           <View style={styles.profileSection}>
-            <View style={[styles.avatarContainer, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
-              <Ionicons
-                name="person"
-                size={32}
-                color={Colors[colorScheme ?? 'light'].surface}
-              />
-            </View>
+            <ProfileAvatar
+              avatarUrl={userProfile?.avatar_url}
+              size={60}
+              iconSize={32}
+            />
             <View style={styles.profileInfo}>
               <ThemedText style={styles.profileName}>
                 {userProfile?.username || 'User'}
@@ -266,13 +265,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     gap: 16,
-  },
-  avatarContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   profileInfo: {
     flex: 1,

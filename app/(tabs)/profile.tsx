@@ -12,6 +12,7 @@ import { Colors, palette } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from '@/hooks/useTranslation';
+import ProfileAvatar from '@/components/ProfileAvatar';
 
 const { width } = Dimensions.get('window');
 const ITEM_SIZE = (width - 48) / 3; // 16px padding + 4px margin per item * 3 items
@@ -114,8 +115,17 @@ export default function ProfileScreen() {
     <ThemedView style={styles.container}>
       <ThemedView style={styles.titleContainer}>
         <ThemedView style={styles.profileHeader}>
-          <ThemedText type="title" style={styles.username}>{userProfile?.username}</ThemedText>
-          <ThemedText style={styles.postsCount}>{posts.length} {t('profile.posts')}</ThemedText>
+          <ThemedView style={styles.profileTopSection}>
+            <ProfileAvatar
+              avatarUrl={userProfile?.avatar_url}
+              size={50}
+              iconSize={24}
+            />
+            <ThemedView style={styles.profileTextInfo}>
+              <ThemedText type="title" style={styles.username}>{userProfile?.username}</ThemedText>
+              <ThemedText style={styles.postsCount}>{posts.length} {t('profile.posts')}</ThemedText>
+            </ThemedView>
+          </ThemedView>
         </ThemedView>
         <TouchableOpacity
           onPress={() => router.push('/settings')}
@@ -173,6 +183,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   profileHeader: {
+    gap: 4,
+  },
+  profileTopSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  profileTextInfo: {
+    flex: 1,
     gap: 4,
   },
   username: {

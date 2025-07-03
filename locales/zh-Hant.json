@@ -84,5 +84,28 @@
     "desks": "桌子",
     "chairs": "椅子",
     "others": "其他"
+  },
+  "posts": {
+    "like": "個讚",
+    "likes": "個讚",
+    "comment": "則留言",
+    "comments": "留言",
+    "viewAllComments": "查看全部 {{count}} 則留言",
+    "addComment": "新增留言..."
+  },
+  "time": {
+    "justNow": "剛剛",
+    "minuteAgo": "{{count}} 分鐘前",
+    "minutesAgo": "{{count}} 分鐘前",
+    "hourAgo": "{{count}} 小時前",
+    "hoursAgo": "{{count}} 小時前",
+    "dayAgo": "{{count}} 天前",
+    "daysAgo": "{{count}} 天前",
+    "weekAgo": "{{count}} 週前",
+    "weeksAgo": "{{count}} 週前",
+    "monthAgo": "{{count}} 個月前",
+    "monthsAgo": "{{count}} 個月前",
+    "yearAgo": "{{count}} 年前",
+    "yearsAgo": "{{count}} 年前"
   }
 }

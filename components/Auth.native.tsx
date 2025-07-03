@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'expo-router'
 import CustomGoogleSignInButton from './CustomGoogleSignInButton'
 import { useTranslation } from '@/hooks/useTranslation'
+import { updateProfileWithAvatar, isValidImageUrl } from '@/utils/profileUtils'
 
 export default function Auth() {
   const { t } = useTranslation();
@@ -43,7 +44,7 @@ export default function Auth() {
         // Check if the user already has a profile
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('username, phone_verified')
+          .select('username, phone_verified, avatar_url')
           .eq('email', userInfo.user.email)
           .single()
 
@@ -51,6 +52,19 @@ export default function Auth() {
           console.error('Error fetching profile:', profileError)
           Alert.alert(t('common.error'), t('auth.failedToFetchUserProfile'))
           return
+        }
+
+        // Update or create profile with avatar URL if available
+        if (userInfo.user.photo && userInfo.user.email && isValidImageUrl(userInfo.user.photo)) {
+          const result = await updateProfileWithAvatar(
+            userInfo.user.email,
+            userInfo.user.photo,
+            profileData?.username
+          );
+          
+          if (!result.success) {
+            console.error('Error updating profile with avatar:', result.error);
+          }
         }
 
         if (!profileData || !profileData.username) {
@@ -114,7 +128,7 @@ export default function Auth() {
         // Check if the user already has a profile
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('username, phone_verified')
+          .select('username, phone_verified, avatar_url')
           .eq('email', email)
           .single()
 
@@ -123,6 +137,10 @@ export default function Auth() {
           Alert.alert(t('common.error'), t('auth.failedToFetchUserProfile'))
           return
         }
+
+        // For Apple, we don't get the photo URL from the credential, but we can check if user has one
+        // Apple doesn't provide avatar URLs, so we'll handle this differently if needed
+        // You could implement a placeholder or ask user to upload their own photo
 
         if (!profileData || !profileData.username) {
           console.log('New user, redirecting to phone verification')

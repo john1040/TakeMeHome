@@ -84,5 +84,28 @@
     "desks": "Desks",
     "chairs": "Chairs",
     "others": "Others"
+  },
+  "posts": {
+    "like": "like",
+    "likes": "likes",
+    "comment": "comment",
+    "comments": "Comments",
+    "viewAllComments": "View all {{count}} comments",
+    "addComment": "Add a comment..."
+  },
+  "time": {
+    "justNow": "just now",
+    "minuteAgo": "{{count}} minute ago",
+    "minutesAgo": "{{count}} minutes ago",
+    "hourAgo": "{{count}} hour ago",
+    "hoursAgo": "{{count}} hours ago",
+    "dayAgo": "{{count}} day ago",
+    "daysAgo": "{{count}} days ago",
+    "weekAgo": "{{count}} week ago",
+    "weeksAgo": "{{count}} weeks ago",
+    "monthAgo": "{{count}} month ago",
+    "monthsAgo": "{{count}} months ago",
+    "yearAgo": "{{count}} year ago",
+    "yearsAgo": "{{count}} years ago"
   }
 }

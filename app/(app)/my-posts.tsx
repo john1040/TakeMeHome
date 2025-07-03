@@ -53,7 +53,7 @@ export default function MyPosts() {
           user_id,
           availability_status,
           image:image(url),
-          profiles:profiles!post_user_id_fkey(username)
+          profiles:profiles!post_user_id_fkey(username, avatar_url)
         `)
         .eq('user_id', userProfile?.id)
         .order('created_at', { ascending: false });
@@ -63,6 +63,7 @@ export default function MyPosts() {
       const posts = (data || []).map(post => ({
         ...post,
         username: post.profiles?.[0]?.username || userProfile?.username || 'Unknown User',
+        avatar_url: post.profiles?.[0]?.avatar_url || userProfile?.avatar_url,
         image: post.image || []
       }));
 

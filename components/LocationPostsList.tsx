@@ -2,6 +2,8 @@ import React, { memo, useRef, useEffect } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, Image, Dimensions, Animated, PanResponder, TouchableWithoutFeedback } from 'react-native';
 import { FlashList } from "@shopify/flash-list";
 import { useTranslation } from '@/hooks/useTranslation';
+import { useRouter } from 'expo-router';
+import { getRelativeTime } from '@/utils/timeUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -57,7 +59,7 @@ const PostCard = memo(({ item, onPress }: PostCardProps) => {
           {item.description}
         </Text>
         <Text style={styles.date}>
-          {new Date(item.created_at).toLocaleDateString()}
+          {getRelativeTime(item.created_at, t)}
         </Text>
       </View>
     </TouchableOpacity>
@@ -65,6 +67,7 @@ const PostCard = memo(({ item, onPress }: PostCardProps) => {
 });
 
 const LocationPostsList: React.FC<LocationPostsListProps> = ({ posts, onPostSelect, onClose }) => {
+  const router = useRouter();
   const pan = useRef(new Animated.ValueXY({ x: 0, y: height * 0.4 })).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
@@ -85,10 +88,20 @@ const LocationPostsList: React.FC<LocationPostsListProps> = ({ posts, onPostSele
   }, [posts]);
 
   const panResponder = PanResponder.create({
-    onMoveShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, gestureState) => {
+      // Only respond to vertical gestures and when gesture starts from near the top
+      return Math.abs(gestureState.dy) > Math.abs(gestureState.dx) && gestureState.dy > 0;
+    },
+    onPanResponderGrant: () => {
+      // Grant responder only if the gesture is clearly a swipe down from the header area
+      return true;
+    },
     onPanResponderMove: (_, gestureState) => {
-      pan.y.setValue(Math.max(0, gestureState.dy));
-      overlayOpacity.setValue(Math.max(0, 1 - gestureState.dy / (height * 0.3)));
+      // Only allow downward movement
+      if (gestureState.dy > 0) {
+        pan.y.setValue(gestureState.dy);
+        overlayOpacity.setValue(Math.max(0, 1 - gestureState.dy / (height * 0.3)));
+      }
     },
     onPanResponderRelease: (_, gestureState) => {
       if (gestureState.dy > 50) {
@@ -131,9 +144,12 @@ const LocationPostsList: React.FC<LocationPostsListProps> = ({ posts, onPostSele
   };
 
   const renderItem = ({ item }: { item: any }) => (
-    <PostCard 
-      item={item} 
-      onPress={() => onPostSelect(item)}
+    <PostCard
+      item={item}
+      onPress={() => {
+        router.push(`/(app)/post-details/${item.id}`);
+        onClose();
+      }}
     />
   );
 
@@ -144,16 +160,17 @@ const LocationPostsList: React.FC<LocationPostsListProps> = ({ posts, onPostSele
       <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
         <Animated.View
           style={[styles.container, { transform: [{ translateY: slideAnimation }] }]}
-          {...panResponder.panHandlers}
         >
           <TouchableWithoutFeedback>
             <View style={styles.content}>
-              <View style={styles.handle} />
-              <View style={styles.header}>
-                <Text style={styles.title}>Posts at this location ({posts.length})</Text>
-                <TouchableOpacity onPress={closeSlider} style={styles.closeButton}>
-                  <Text style={styles.closeButtonText}>×</Text>
-                </TouchableOpacity>
+              <View style={styles.headerSection} {...panResponder.panHandlers}>
+                <View style={styles.handle} />
+                <View style={styles.header}>
+                  <Text style={styles.title}>Posts at this location ({posts.length})</Text>
+                  <TouchableOpacity onPress={closeSlider} style={styles.closeButton}>
+                    <Text style={styles.closeButtonText}>×</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
               <View style={styles.listContainer}>
                 <FlashList
@@ -162,6 +179,9 @@ const LocationPostsList: React.FC<LocationPostsListProps> = ({ posts, onPostSele
                   estimatedItemSize={80}
                   showsVerticalScrollIndicator={true}
                   contentContainerStyle={styles.listContent}
+                  keyExtractor={(item, index) => item.id || index.toString()}
+                  scrollEnabled={true}
+                  nestedScrollEnabled={true}
                 />
               </View>
             </View>
@@ -200,6 +220,9 @@ const styles = StyleSheet.create({
     padding: 15,
     flex: 1,
   },
+  headerSection: {
+    paddingBottom: 10,
+  },
   handle: {
     width: 40,
     height: 5,
@@ -230,6 +253,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     flex: 1,
+    minHeight: 0, // This is important for FlashList to work properly in flex containers
   },
   listContent: {
     padding: 5,

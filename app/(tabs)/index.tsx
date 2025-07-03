@@ -27,6 +27,7 @@ interface RawPost {
 
 interface Post extends Omit<RawPost, 'profiles'> {
   username: string;
+  avatar_url?: string;
 }
 
 interface PostResponse {

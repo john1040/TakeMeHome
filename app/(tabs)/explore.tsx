@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, TouchableOpacity, ScrollView, Alert, View, Platform } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { supabase } from '@/lib/supabase';
-import SlidingPostView from '@/components/SlidingPostView';
 import LocationPostsList from '@/components/LocationPostsList';
 import * as Location from 'expo-location';
 import { ThemedView } from '@/components/ThemedView';
@@ -10,6 +9,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { palette } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useRouter } from 'expo-router';
 
 const CATEGORIES = ['all', 'desks', 'chairs', 'others'] as const;
 type Category = typeof CATEGORIES[number];
@@ -38,8 +38,8 @@ interface LocationData {
 
 export default function MapViewPosts({ userId }: { userId: string }) {
   const { t } = useTranslation();
+  const router = useRouter();
   const [posts, setPosts] = useState<LocationData[]>([]);
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
@@ -152,16 +152,12 @@ export default function MapViewPosts({ userId }: { userId: string }) {
   };
 
   const handlePostSelect = (post: Post): void => {
-    setSelectedPost(post);
+    router.push(`/(app)/post-details/${post.id}`);
     setSelectedLocation(null);
   };
 
   const handleCloseLocationList = () => {
     setSelectedLocation(null);
-  };
-
-  const handleCloseSlider = () => {
-    setSelectedPost(null);
   };
 
   const filteredPosts = posts.filter(locationData => {
@@ -261,12 +257,6 @@ export default function MapViewPosts({ userId }: { userId: string }) {
           onClose={handleCloseLocationList}
         />
       )}
-
-      <SlidingPostView
-        post={selectedPost}
-        userId={userId}
-        onClose={handleCloseSlider}
-      />
     </View>
   );
 }

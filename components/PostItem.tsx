@@ -11,6 +11,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { palette } from '@/constants/Colors';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useQueryClient } from '@tanstack/react-query';
+import { getRelativeTime } from '@/utils/timeUtils';
+import ProfileAvatar from '@/components/ProfileAvatar';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH / 3;
@@ -194,6 +196,14 @@ const createStyles = () => StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 12,
   },
+  userInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  avatar: {
+    marginRight: 12,
+  },
   userInfo: {
     flex: 1,
   },
@@ -352,6 +362,7 @@ interface PostItemProps {
     category?: string;
     availability_status?: string;
     username: string;
+    avatar_url?: string;
     likeCount?: number;
     comments?: Comment[];
     image?: { url: string }[];
@@ -360,9 +371,10 @@ interface PostItemProps {
   showDelete: boolean;
   onDelete: (postId: string) => void;
   onUpdate?: () => void;
+  hideComments?: boolean;
 }
 
-const PostItem = ({ post, userId, showDelete, onDelete, onUpdate }: PostItemProps): JSX.Element => {
+const PostItem = ({ post, userId, showDelete, onDelete, onUpdate, hideComments = false }: PostItemProps): JSX.Element => {
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -547,7 +559,7 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate }: PostItemProp
         {item.content}
       </ThemedText>
       <ThemedText type="caption" style={styles.commentDate}>
-        {new Date(item.created_at).toLocaleString()}
+        {getRelativeTime(item.created_at, t)}
       </ThemedText>
     </View>
   );
@@ -654,9 +666,17 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate }: PostItemProp
   return (
     <ThemedView variant="surface" style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.userInfo}>
-          <ThemedText type="subtitle" style={styles.username}>{post.username}</ThemedText>
-          <ThemedText type="caption" style={styles.location}>{post.street_name}</ThemedText>
+        <View style={styles.userInfoContainer}>
+          <ProfileAvatar
+            avatarUrl={post.avatar_url}
+            size={40}
+            iconSize={20}
+            style={styles.avatar}
+          />
+          <View style={styles.userInfo}>
+            <ThemedText type="subtitle" style={styles.username}>{post.username}</ThemedText>
+            <ThemedText type="caption" style={styles.location}>{post.street_name}</ThemedText>
+          </View>
         </View>
         {post.category && (
           <ThemedView style={styles.categoryBadge}>
@@ -696,7 +716,7 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate }: PostItemProp
       </ThemedText>
 
       <ThemedText type="caption" style={styles.date}>
-        {new Date(post.created_at).toLocaleString()}
+        {getRelativeTime(post.created_at, t)}
       </ThemedText>
 
       {/* Availability Status */}
@@ -737,7 +757,9 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate }: PostItemProp
                 fill={isLiked ? palette.gold : 'none'}
               />
             </TouchableOpacity>
-            <ThemedText style={styles.likeCount}>{likeCount} likes</ThemedText>
+            <ThemedText style={styles.likeCount}>
+              {likeCount} {likeCount === 1 ? t('posts.like') : t('posts.likes')}
+            </ThemedText>
           </View>
           <TouchableOpacity onPress={handleStartChat} style={styles.chatButton}>
             <MessageCircle size={24} color={palette.teal} />
@@ -752,39 +774,40 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate }: PostItemProp
           </TouchableOpacity>
         )}
       </View>
-<ThemedText style={styles.description}>{post.description}</ThemedText>
-      <View style={styles.commentsSection}>
-        <ThemedText type="defaultSemiBold" style={styles.commentsHeader}>
-          Comments
-        </ThemedText>
-        <View style={{minHeight: 2}}>
-          <FlashList
-            data={comments.slice(0, 2)}
-            renderItem={renderComment}
-            keyExtractor={(item, index) => `${post.id}-comment-${item.id}-${index}`}
-            estimatedItemSize={5}
-          />
+      {!hideComments && (
+        <View style={styles.commentsSection}>
+          <ThemedText type="defaultSemiBold" style={styles.commentsHeader}>
+            {t('posts.comments')}
+          </ThemedText>
+          <View style={{minHeight: 2}}>
+            <FlashList
+              data={comments.slice(0, 2)}
+              renderItem={renderComment}
+              keyExtractor={(item, index) => `${post.id}-comment-${item.id}-${index}`}
+              estimatedItemSize={5}
+            />
+          </View>
+          {comments.length > 2 && (
+            <TouchableOpacity onPress={handleShowAllComments}>
+              <ThemedText type="link" style={styles.viewAllComments}>
+                {t('posts.viewAllComments', { count: comments.length })}
+              </ThemedText>
+            </TouchableOpacity>
+          )}
+          <View style={styles.addCommentContainer}>
+            <TextInput
+              style={styles.commentInput}
+              value={newComment}
+              onChangeText={setNewComment}
+              placeholder={t('posts.addComment')}
+              placeholderTextColor={palette.teal}
+            />
+            <TouchableOpacity onPress={handleAddComment} style={styles.sendButton}>
+              <Send size={24} color={palette.teal} />
+            </TouchableOpacity>
+          </View>
         </View>
-        {comments.length > 2 && (
-          <TouchableOpacity onPress={handleShowAllComments}>
-            <ThemedText type="link" style={styles.viewAllComments}>
-              View all {comments.length} comments
-            </ThemedText>
-          </TouchableOpacity>
-        )}
-        <View style={styles.addCommentContainer}>
-          <TextInput
-            style={styles.commentInput}
-            value={newComment}
-            onChangeText={setNewComment}
-            placeholder="Add a comment..."
-            placeholderTextColor={palette.teal}
-          />
-          <TouchableOpacity onPress={handleAddComment} style={styles.sendButton}>
-            <Send size={24} color={palette.teal} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      )}
 
       {showFullComments && (
         <Animated.View
@@ -811,7 +834,7 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate }: PostItemProp
               style={styles.commentInput}
               value={newComment}
               onChangeText={setNewComment}
-              placeholder="Add a comment..."
+              placeholder={t('posts.addComment')}
               placeholderTextColor={palette.teal}
             />
             <TouchableOpacity onPress={handleAddComment} style={styles.sendButton}>
