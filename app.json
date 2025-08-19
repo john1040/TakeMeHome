@@ -2,7 +2,7 @@
   "expo": {
     "name": "TakeMeHome",
     "slug": "TakeMeHome",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/images/TMH_Logo_optimized.png",
     "scheme": "tmhapp",
@@ -11,6 +11,7 @@
       "useAppleSignIn": true,
       "supportsTablet": true,
       "bundleIdentifier": "com.john1040.tmhapp",
+      "buildNumber": "1",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app needs access to location to select post locations.",
         "ITSAppUsesNonExemptEncryption": false
@@ -31,6 +32,7 @@
         "android.permission.INTERNET"
       ],
       "usesCleartextTraffic": true,
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"

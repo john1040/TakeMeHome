@@ -26,15 +26,19 @@ export function useAuth() {
         if (profiles && profiles.length > 0) {
           profile = profiles[0];  // Take the first profile if multiple exist
         } else {
-          // Handle case where no profile exists
-          console.warn('No profile found for user');
-          // Optionally, you could create a profile here
-          // const { data: newProfile, error: createError } = await supabase
-          //   .from('profiles')
-          //   .insert({ email: session.user.email })
-          //   .single();
-          // if (createError) throw createError;
-          // profile = newProfile;
+          // Handle case where no profile exists - create a basic profile object
+          console.warn('No profile found for user, using session data');
+          profile = {
+            id: session.user.id,
+            email: session.user.email,
+            username: session.user.user_metadata?.name || session.user.user_metadata?.full_name || null,
+            avatar_url: session.user.user_metadata?.avatar_url || null
+          };
+        }
+
+        // Ensure we have email from session if not in profile
+        if (profile && !profile.email) {
+          profile.email = session.user.email;
         }
 
         return { session, profile };

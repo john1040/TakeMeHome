@@ -76,6 +76,7 @@ export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const { t } = useTranslation();
 
+
   // Use React Query for data fetching with caching
   const {
     data: posts = [],
@@ -121,11 +122,11 @@ export default function ProfileScreen() {
               size={50}
               iconSize={24}
             />
-            <ThemedView style={styles.profileTextInfo}>
-              <ThemedText type="title" style={styles.username}>{userProfile?.username}</ThemedText>
-              <ThemedText style={styles.postsCount}>{posts.length} {t('profile.posts')}</ThemedText>
-            </ThemedView>
-          </ThemedView>
+            <ThemedText type="title" style={styles.username}>
+              {userProfile?.username || userProfile?.email?.split('@')[0] || 'User'}
+            </ThemedText>
+          <ThemedText style={styles.postsCount}>{posts.length} {t('profile.posts')}</ThemedText>
+        </ThemedView>
         </ThemedView>
         <TouchableOpacity
           onPress={() => router.push('/settings')}
@@ -193,6 +194,8 @@ const styles = StyleSheet.create({
   profileTextInfo: {
     flex: 1,
     gap: 4,
+    minWidth: 0,
+    justifyContent: 'center',
   },
   username: {
     fontSize: 24,
