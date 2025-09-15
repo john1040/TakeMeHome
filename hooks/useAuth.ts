@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
+import { isReviewerAccount } from '@/utils/reviewerAuth';
 
 export function useAuth() {
   const queryClient = useQueryClient();
@@ -8,6 +9,7 @@ export function useAuth() {
   const { data: sessionData, isLoading: sessionLoading, error: sessionError } = useQuery<{
     session: Session | null;
     profile: any | null;
+    isReviewer: boolean;
   }>({
     queryKey: ['sessionAndProfile'],
     queryFn: async () => {
@@ -15,10 +17,13 @@ export function useAuth() {
       const session = sessionData.session;
 
       if (session?.user?.id) {
+        const userEmail = session.user.email || '';
+        const reviewerStatus = isReviewerAccount(userEmail);
+
         const { data: profiles, error } = await supabase
           .from('profiles')
-          .select('username, id, email, avatar_url')
-          .eq('email', session.user.email);
+          .select('username, id, email, avatar_url, phone_verified')
+          .eq('email', userEmail);
 
         if (error) throw error;
 
@@ -30,29 +35,36 @@ export function useAuth() {
           console.warn('No profile found for user, using session data');
           profile = {
             id: session.user.id,
-            email: session.user.email,
+            email: userEmail,
             username: session.user.user_metadata?.name || session.user.user_metadata?.full_name || null,
-            avatar_url: session.user.user_metadata?.avatar_url || null
+            avatar_url: session.user.user_metadata?.avatar_url || null,
+            phone_verified: reviewerStatus // Reviewer accounts are automatically phone verified
           };
         }
 
         // Ensure we have email from session if not in profile
         if (profile && !profile.email) {
-          profile.email = session.user.email;
+          profile.email = userEmail;
         }
 
-        return { session, profile };
+        // For reviewer accounts, ensure phone_verified is true
+        if (reviewerStatus && profile) {
+          profile.phone_verified = true;
+        }
+
+        return { session, profile, isReviewer: reviewerStatus };
       }
 
-      return { session: null, profile: null };
+      return { session: null, profile: null, isReviewer: false };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
-  return { 
+  return {
     session: sessionData?.session,
     userProfile: sessionData?.profile,
+    isReviewer: sessionData?.isReviewer || false,
     isLoading: sessionLoading,
     error: sessionError,
   };

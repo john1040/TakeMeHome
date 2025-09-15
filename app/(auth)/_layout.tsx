@@ -9,7 +9,12 @@ export default function AuthLayout() {
           headerShown: false,
         }}
       />
-      {/* Add other auth screens here if needed */}
+      <Stack.Screen
+        name="reviewer"
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

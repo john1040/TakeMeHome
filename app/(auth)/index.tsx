@@ -93,6 +93,15 @@ export default function App() {
           </View>
           <View style={styles.authContainer}>
             <Auth />
+            
+            {/* Password Sign In Button */}
+            <Button
+              title="🔐 Sign In with Password"
+              onPress={() => router.push('./reviewer')}
+              buttonStyle={styles.reviewerButton}
+              titleStyle={styles.reviewerButtonText}
+            />
+            
             {isDevelopment && (
               <Button
                 title="🧪 Test Phone Verification"
@@ -187,6 +196,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   devButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  reviewerButton: {
+    backgroundColor: palette.teal,
+    borderRadius: 8,
+    marginTop: 20,
+    paddingHorizontal: 20,
+  },
+  reviewerButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#ffffff',
