@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { View, StyleSheet, TouchableOpacity, TextInput, Animated, Dimensions, PanResponder, Alert, ActivityIndicator, Share as RNShare, ViewStyle, ImageStyle } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { Heart, Send, X, Trash2, MessageCircle, Share as ShareIcon } from 'lucide-react-native';
@@ -380,7 +380,7 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate, hideComments =
   const queryClient = useQueryClient();
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likeCount || 0);
-  const [images, setImages] = useState<string[]>(post.image?.map(img => img.url) || []);
+  const images = useMemo(() => post.image?.map(img => img.url) || [], [post.image]);
   const [currentPage, setCurrentPage] = useState(0);
   const [comments, setComments] = useState<Comment[]>(post.comments || []);
   const [newComment, setNewComment] = useState('');
@@ -608,55 +608,19 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate, hideComments =
     }
   }, [userId, post.id]);
 
-  const fetchLikeCount = useCallback(async () => {
-    const { count, error } = await supabase
-      .from('likes')
-      .select('id', { count: 'exact' })
-      .eq('post_id', post.id);
-
-    if (error) {
-      console.error('Error fetching like count:', error);
-    } else {
-      setLikeCount(count || 0);
-    }
-  }, [post.id]);
-
-  const fetchImages = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('image')
-      .select('url')
-      .eq('post_id', post.id)
-      .order('order', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching images:', error);
-    } else {
-      setImages(data.map((img) => img.url));
-    }
-  }, [post.id]);
-
-  const fetchComments = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('comments')
-      .select('id, content, created_at, user_id, username')
-      .eq('post_id', post.id)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching comments:', error);
-    } else {
-      setComments(data);
-    }
-  }, [post.id]);
-
   useEffect(() => {
     if (userId) {
       fetchLikeStatus();
     }
-    fetchLikeCount();
-    fetchImages();
-    fetchComments();
-  }, [userId, fetchLikeStatus, fetchLikeCount, fetchImages, fetchComments]);
+  }, [userId, fetchLikeStatus]);
+
+  useEffect(() => {
+    setLikeCount(post.likeCount || 0);
+  }, [post.likeCount]);
+
+  useEffect(() => {
+    setComments(post.comments || []);
+  }, [post.comments]);
 
   // Sync local availability status with prop changes
   useEffect(() => {

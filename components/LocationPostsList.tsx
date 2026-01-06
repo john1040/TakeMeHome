@@ -1,9 +1,12 @@
 import React, { memo, useRef, useEffect } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Image, Dimensions, Animated, PanResponder, TouchableWithoutFeedback } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Image, Dimensions, Animated, PanResponder, TouchableWithoutFeedback } from 'react-native';
 import { FlashList } from "@shopify/flash-list";
 import { useTranslation } from '@/hooks/useTranslation';
 import { useRouter } from 'expo-router';
 import { getRelativeTime } from '@/utils/timeUtils';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { palette } from '@/constants/Colors';
 
 const { width, height } = Dimensions.get('window');
 
@@ -23,45 +26,47 @@ const PostCard = memo(({ item, onPress }: PostCardProps) => {
   
   return (
     <TouchableOpacity
-      style={styles.postCard}
+      activeOpacity={0.7}
       onPress={onPress}
     >
-      <Image
-        source={{
-          uri: Array.isArray(item.image) ? item.image[0]?.url : item.image?.url,
-          cache: 'force-cache',
-        }}
-        style={styles.thumbnail}
-        resizeMode="cover"
-      />
-      <View style={styles.postInfo}>
-        <View style={styles.badgeContainer}>
-          {item.category && (
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>
-                {t(`categories.${item.category}`)}
-              </Text>
-            </View>
-          )}
-          <View style={[
-            styles.availabilityBadge,
-            item.availability_status === 'taken' ? styles.takenBadge : styles.availableBadge
-          ]}>
-            <Text style={[
-              styles.availabilityText,
-              item.availability_status === 'taken' ? styles.takenText : styles.availableText
+      <ThemedView variant="surface" style={styles.postCard}>
+        <Image
+          source={{
+            uri: Array.isArray(item.image) ? item.image[0]?.url : item.image?.url,
+            cache: 'force-cache',
+          }}
+          style={styles.thumbnail}
+          resizeMode="cover"
+        />
+        <View style={styles.postInfo}>
+          <View style={styles.badgeContainer}>
+            {item.category && (
+              <View style={styles.categoryBadge}>
+                <ThemedText style={styles.categoryText}>
+                  {t(`categories.${item.category}`)}
+                </ThemedText>
+              </View>
+            )}
+            <View style={[
+              styles.availabilityBadge,
+              item.availability_status === 'taken' ? styles.takenBadge : styles.availableBadge
             ]}>
-              {item.availability_status === 'taken' ? 'Taken' : 'Available'}
-            </Text>
+              <ThemedText style={[
+                styles.availabilityText,
+                item.availability_status === 'taken' ? styles.takenText : styles.availableText
+              ]}>
+                {item.availability_status === 'taken' ? 'Taken' : 'Available'}
+              </ThemedText>
+            </View>
           </View>
+          <ThemedText style={styles.description} numberOfLines={2}>
+            {item.description}
+          </ThemedText>
+          <ThemedText type="caption" style={styles.date}>
+            {getRelativeTime(item.created_at, t)}
+          </ThemedText>
         </View>
-        <Text style={styles.description} numberOfLines={2}>
-          {item.description}
-        </Text>
-        <Text style={styles.date}>
-          {getRelativeTime(item.created_at, t)}
-        </Text>
-      </View>
+      </ThemedView>
     </TouchableOpacity>
   );
 });
@@ -162,13 +167,13 @@ const LocationPostsList: React.FC<LocationPostsListProps> = ({ posts, onPostSele
           style={[styles.container, { transform: [{ translateY: slideAnimation }] }]}
         >
           <TouchableWithoutFeedback>
-            <View style={styles.content}>
+            <ThemedView variant="surface" style={styles.content}>
               <View style={styles.headerSection} {...panResponder.panHandlers}>
                 <View style={styles.handle} />
                 <View style={styles.header}>
-                  <Text style={styles.title}>Posts at this location ({posts.length})</Text>
+                  <ThemedText type="subtitle" style={styles.title}>Posts at this location ({posts.length})</ThemedText>
                   <TouchableOpacity onPress={closeSlider} style={styles.closeButton}>
-                    <Text style={styles.closeButtonText}>×</Text>
+                    <ThemedText style={styles.closeButtonText}>×</ThemedText>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -184,7 +189,7 @@ const LocationPostsList: React.FC<LocationPostsListProps> = ({ posts, onPostSele
                   nestedScrollEnabled={true}
                 />
               </View>
-            </View>
+            </ThemedView>
           </TouchableWithoutFeedback>
         </Animated.View>
       </Animated.View>
@@ -199,131 +204,131 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
   container: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: height * 0.4,
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
+    height: height * 0.5,
+    backgroundColor: 'transparent', // Let ThemedView handle bg
   },
   content: {
-    padding: 15,
     flex: 1,
+    padding: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    // ThemedView 'surface' already has shadows, but we might want to ensure they are correct for a modal
+    shadowColor: palette.carbon,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
   },
   headerSection: {
-    paddingBottom: 10,
+    paddingBottom: 0,
   },
   handle: {
     width: 40,
-    height: 5,
-    backgroundColor: '#ccc',
+    height: 4,
+    backgroundColor: `${palette.teal}40`,
     borderRadius: 3,
     alignSelf: 'center',
-    marginBottom: 15,
+    marginBottom: 16,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: 15,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    marginBottom: 10,
+    borderBottomColor: `${palette.teal}20`,
+    marginBottom: 12,
   },
   title: {
-    fontSize: 16,
-    fontWeight: '600',
+    color: palette.deepTeal,
   },
   closeButton: {
-    padding: 5,
+    padding: 8,
+    marginRight: -8,
   },
   closeButtonText: {
-    fontSize: 24,
-    color: '#666',
+    fontSize: 28,
+    lineHeight: 28,
+    color: palette.teal,
   },
   listContainer: {
     flex: 1,
-    minHeight: 0, // This is important for FlashList to work properly in flex containers
+    minHeight: 0,
   },
   listContent: {
-    padding: 5,
+    paddingVertical: 8,
   },
   postCard: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 10,
-    marginBottom: 10,
-    padding: 10,
+    marginBottom: 12,
+    padding: 12,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: `${palette.teal}20`,
+    borderRadius: 16,
   },
   thumbnail: {
-    width: 60,
-    height: 60,
-    borderRadius: 5,
+    width: 72,
+    height: 72,
+    borderRadius: 12,
+    backgroundColor: `${palette.teal}10`,
   },
   postInfo: {
     flex: 1,
-    marginLeft: 10,
+    marginLeft: 14,
     justifyContent: 'center',
   },
   description: {
-    fontSize: 14,
-    marginBottom: 4,
+    fontSize: 15,
+    marginBottom: 6,
+    lineHeight: 20,
   },
   date: {
-    fontSize: 12,
-    color: '#666',
-  },
-  categoryBadge: {
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-    marginBottom: 4,
-  },
-  categoryText: {
-    fontSize: 11,
-    color: '#666',
-    fontWeight: '600',
+    color: palette.teal,
   },
   badgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
+  },
+  categoryBadge: {
+    backgroundColor: `${palette.teal}10`,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  categoryText: {
+    fontSize: 11,
+    color: palette.deepTeal,
+    fontWeight: '600',
   },
   availabilityBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginLeft: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
   },
   availableBadge: {
-    backgroundColor: '#e8f5e8',
+    backgroundColor: `${palette.sage}20`,
   },
   takenBadge: {
-    backgroundColor: '#fff3cd',
+    backgroundColor: `${palette.gold}20`,
   },
   availabilityText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
   },
   availableText: {
-    color: '#28a745',
+    color: palette.forest,
   },
   takenText: {
-    color: '#856404',
+    color: palette.carbon, // Better contrast on gold
   },
 });
 
