@@ -13,9 +13,9 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useQueryClient } from '@tanstack/react-query';
 import { getRelativeTime } from '@/utils/timeUtils';
 import ProfileAvatar from '@/components/ProfileAvatar';
+import { BottomSheetModal, BottomSheetBackdrop, BottomSheetTextInput, BottomSheetView } from '@gorhom/bottom-sheet';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SWIPE_THRESHOLD = SCREEN_WIDTH / 3;
 
 type StyleProps = ReturnType<typeof createStyles>;
 
@@ -157,17 +157,23 @@ const createStyles = () => StyleSheet.create({
   sendButton: {
     padding: 8,
   },
-  fullCommentsView: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: palette.white,
-    padding: 16,
-    borderRadius: 12,
+  bottomSheetBackground: {
+    borderRadius: 24,
+    shadowColor: palette.carbon,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
   },
-  fullCommentsHeader: {
+  handleIndicator: {
+    backgroundColor: `${palette.teal}40`,
+    width: 40,
+  },
+  bottomSheetContent: {
+    flex: 1,
+    padding: 16,
+  },
+  bottomSheetHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -176,8 +182,15 @@ const createStyles = () => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: `${palette.teal}20`,
   },
-  closeButton: {
-    padding: 8,
+  bsCommentInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: palette.teal,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginRight: 8,
+    color: palette.carbon,
   },
   actionContainer: {
     flexDirection: 'row',
@@ -263,6 +276,36 @@ const createStyles = () => StyleSheet.create({
   },
   toggleButton: {
     padding: 4,
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: `${palette.teal}15`,
+    borderRadius: 20,
+    padding: 4,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  segment: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  activeSegmentAvailable: {
+    backgroundColor: palette.teal,
+  },
+  activeSegmentTaken: {
+    backgroundColor: palette.gold,
+  },
+  segmentText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: palette.deepTeal,
+  },
+  activeSegmentText: {
+    color: palette.white,
+  },
+  takenContainer: {
+    opacity: 0.8,
   },
 });
 
@@ -386,9 +429,24 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate, hideComments =
   const [newComment, setNewComment] = useState('');
   const [showAllComments, setShowAllComments] = useState(false);
   const { userProfile } = useAuth();
-  const [showFullComments, setShowFullComments] = useState(false);
-  const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
   const [availabilityStatus, setAvailabilityStatus] = useState(post.availability_status || 'available');
+
+  // Bottom Sheet
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  const snapPoints = useMemo(() => ['50%', '90%'], []);
+  const handlePresentModalPress = useCallback(() => {
+    bottomSheetModalRef.current?.present();
+  }, []);
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+      />
+    ),
+    []
+  );
 
   const handleAddComment = async () => {
     if (!userId || !newComment.trim()) return;
@@ -469,33 +527,25 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate, hideComments =
     }
   };
 
-  const handleToggleAvailability = async () => {
-    if (post.user_id !== userId) {
-      console.error('Unauthorized availability toggle attempt');
-      return;
-    }
+    const handleSetAvailability = async (targetStatus: string) => {
+    if (post.user_id !== userId) return;
+    if (availabilityStatus === targetStatus) return;
 
-    const newStatus = availabilityStatus === 'available' ? 'taken' : 'available';
-    
     try {
       const { error } = await supabase
         .from('post')
-        .update({ availability_status: newStatus })
+        .update({ availability_status: targetStatus })
         .eq('id', post.id)
         .eq('user_id', userId);
 
       if (error) throw error;
 
-      setAvailabilityStatus(newStatus);
-      
-      // Invalidate React Query cache to ensure all screens refresh
+      setAvailabilityStatus(targetStatus);
       queryClient.invalidateQueries({ queryKey: ['posts'] });
-      
-      onUpdate?.(); // Call the update callback to refresh the parent component
-      
+      onUpdate?.();
     } catch (error) {
       console.error('Error updating availability status:', error);
-      Alert.alert("Error", "Failed to update availability status. Please try again.");
+      Alert.alert("Error", "Failed to update availability status.");
     }
   };
 
@@ -534,21 +584,9 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate, hideComments =
     );
   };
 
-  const handleCloseComments = () => {
-    Animated.timing(slideAnim, {
-      toValue: SCREEN_WIDTH,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => setShowFullComments(false));
-  };
 
-  const handleShowAllComments = () => {
-    setShowFullComments(true);
-    Animated.spring(slideAnim, {
-      toValue: 0,
-      useNativeDriver: true,
-    }).start();
-  };
+
+
 
   const renderComment = ({ item }: { item: Comment }) => (
     <View style={styles.commentContainer}>
@@ -568,28 +606,7 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate, hideComments =
     setCurrentPage(e.nativeEvent.position);
   };
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        return Math.abs(gestureState.dx) > 5;
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        if (gestureState.dx > 0) {
-          slideAnim.setValue(gestureState.dx);
-        }
-      },
-      onPanResponderRelease: (evt, gestureState) => {
-        if (gestureState.dx > SWIPE_THRESHOLD) {
-          handleCloseComments();
-        } else {
-          Animated.spring(slideAnim, {
-            toValue: 0,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    })
-  ).current;
+
 
   const fetchLikeStatus = useCallback(async () => {
     if (!userId) return;
@@ -628,7 +645,7 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate, hideComments =
   }, [post.availability_status]);
 
   return (
-    <ThemedView variant="surface" style={styles.container}>
+    <ThemedView variant="surface" style={[styles.container, availabilityStatus === 'taken' && styles.takenContainer]}>
       <View style={styles.header}>
         <View style={styles.userInfoContainer}>
           <ProfileAvatar
@@ -684,29 +701,52 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate, hideComments =
       </ThemedText>
 
       {/* Availability Status */}
-      <View style={styles.availabilityContainer}>
-        <View style={[
-          styles.availabilityBadge,
-          availabilityStatus === 'available' ? styles.availableBadge : styles.takenBadge
-        ]}>
-          <ThemedText style={[
-            styles.availabilityText,
-            availabilityStatus === 'available' ? styles.availableText : styles.takenText
-          ]}>
-            {availabilityStatus === 'available' ? 'Available' : 'Taken'}
-          </ThemedText>
-        </View>
-        {post.user_id === userId && showDelete && (
-          <TouchableOpacity onPress={handleToggleAvailability} style={styles.toggleButton}>
+      {post.user_id === userId ? (
+        <View style={styles.toggleContainer}>
+          <TouchableOpacity 
+            onPress={() => handleSetAvailability('available')}
+            style={[
+              styles.segment, 
+              availabilityStatus === 'available' && styles.activeSegmentAvailable
+            ]}
+          >
             <ThemedText style={[
-              styles.availabilityText,
-              availabilityStatus === 'available' ? styles.takenText : styles.availableText
+              styles.segmentText,
+              availabilityStatus === 'available' && styles.activeSegmentText
             ]}>
-              Mark as {availabilityStatus === 'available' ? 'Taken' : 'Available'}
+              Available
             </ThemedText>
           </TouchableOpacity>
-        )}
-      </View>
+          <TouchableOpacity 
+            onPress={() => handleSetAvailability('taken')}
+            style={[
+              styles.segment, 
+              availabilityStatus === 'taken' && styles.activeSegmentTaken
+            ]}
+          >
+            <ThemedText style={[
+              styles.segmentText,
+              availabilityStatus === 'taken' && styles.activeSegmentText
+            ]}>
+              Taken
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.availabilityContainer}>
+          <View style={[
+            styles.availabilityBadge,
+            availabilityStatus === 'available' ? styles.availableBadge : styles.takenBadge
+          ]}>
+            <ThemedText style={[
+              styles.availabilityText,
+              availabilityStatus === 'available' ? styles.availableText : styles.takenText
+            ]}>
+              {availabilityStatus === 'available' ? 'Available' : 'Taken'}
+            </ThemedText>
+          </View>
+        </View>
+      )}
 
       <View style={styles.actionContainer}>
         <View style={styles.actionButtons}>
@@ -752,7 +792,7 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate, hideComments =
             />
           </View>
           {comments.length > 2 && (
-            <TouchableOpacity onPress={handleShowAllComments}>
+            <TouchableOpacity onPress={handlePresentModalPress}>
               <ThemedText type="link" style={styles.viewAllComments}>
                 {t('posts.viewAllComments', { count: comments.length })}
               </ThemedText>
@@ -773,18 +813,19 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate, hideComments =
         </View>
       )}
 
-      {showFullComments && (
-        <Animated.View
-          style={[
-            styles.fullCommentsView,
-            { transform: [{ translateX: slideAnim }] }
-          ]}
-          {...panResponder.panHandlers}
-        >
-          <View style={styles.fullCommentsHeader}>
-            <ThemedText type="heading">Comments</ThemedText>
-            <TouchableOpacity onPress={handleCloseComments} style={styles.closeButton}>
-              <X size={24} color={palette.teal} />
+      <BottomSheetModal
+        ref={bottomSheetModalRef}
+        index={0}
+        snapPoints={snapPoints}
+        backdropComponent={renderBackdrop}
+        backgroundStyle={styles.bottomSheetBackground}
+        handleIndicatorStyle={styles.handleIndicator}
+      >
+        <BottomSheetView style={styles.bottomSheetContent}>
+          <View style={styles.bottomSheetHeader}>
+            <ThemedText type="subtitle">Comments ({comments.length})</ThemedText>
+            <TouchableOpacity onPress={() => bottomSheetModalRef.current?.dismiss()} style={styles.toggleButton}>
+               <X size={24} color={palette.teal} />
             </TouchableOpacity>
           </View>
           <FlashList
@@ -794,8 +835,8 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate, hideComments =
             estimatedItemSize={5}
           />
           <View style={styles.addCommentContainer}>
-            <TextInput
-              style={styles.commentInput}
+            <BottomSheetTextInput
+              style={styles.bsCommentInput}
               value={newComment}
               onChangeText={setNewComment}
               placeholder={t('posts.addComment')}
@@ -805,8 +846,8 @@ const PostItem = ({ post, userId, showDelete, onDelete, onUpdate, hideComments =
               <Send size={24} color={palette.teal} />
             </TouchableOpacity>
           </View>
-        </Animated.View>
-      )}
+        </BottomSheetView>
+      </BottomSheetModal>
     </ThemedView>
   );
 };

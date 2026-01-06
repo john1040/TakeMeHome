@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { TranslationProvider, useTranslationContext } from '@/contexts/TranslationContext';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import '../lib/i18n'; // Initialize i18n
 
 SplashScreen.preventAutoHideAsync();
@@ -72,9 +73,11 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
-        <TranslationProvider>
-          <RootLayoutNavigator />
-        </TranslationProvider>
+        <BottomSheetModalProvider>
+          <TranslationProvider>
+            <RootLayoutNavigator />
+          </TranslationProvider>
+        </BottomSheetModalProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
   );
