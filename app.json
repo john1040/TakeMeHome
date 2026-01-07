@@ -91,7 +91,8 @@
       [
         "expo-apple-authentication"
       ],
-      "expo-localization"
+      "expo-localization",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
